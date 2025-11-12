@@ -1,11 +1,12 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ticket } from '../../models/ticket.interface';
+import { FormDataTableComponent } from '../form-data-table/form-data-table.component';
 
 @Component({
   selector: 'app-approval-grid-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormDataTableComponent],
   template: `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       
@@ -121,6 +122,9 @@ import { Ticket } from '../../models/ticket.interface';
               </div>
             </div>
           </div>
+
+          <!-- Form Data Tables -->
+          <app-form-data-table [ticket]="selectedTicket"></app-form-data-table>
 
           <!-- Additional Data -->
           <div class="mt-6" *ngIf="selectedTicket.tags && selectedTicket.tags.length > 0">

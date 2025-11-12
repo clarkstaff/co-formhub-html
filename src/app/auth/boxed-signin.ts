@@ -4,6 +4,7 @@ import { toggleAnimation } from 'src/app/shared/animations';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { AppService } from 'src/app/service/app.service';
 import { Subscription, Observable, BehaviorSubject } from 'rxjs';
 import { first } from 'rxjs/operators';
 import { AuthService } from 'src/app/core/services/auth.service';

@@ -21,6 +21,9 @@ export interface Ticket {
     formData: any;
     referenceId: string;
     formId: number;
+    customForm?: any;
+    category?: string;
+    formType?: string;
   };
 }
 
@@ -85,4 +88,8 @@ export interface TicketFilter {
   search?: string;
   dateFrom?: Date;
   dateTo?: Date;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  perPage?: number;
+  page?: number;
 }

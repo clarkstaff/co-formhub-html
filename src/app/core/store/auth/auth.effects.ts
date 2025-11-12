@@ -7,7 +7,7 @@ import { Store } from '@ngrx/store';
 
 import { AuthActions } from './auth.actions';
 import { AuthService } from '../../services/auth.service';
-import { AuthUtils } from '../../modules/auth/services/auth.utils';
+import { AuthUtils } from '../../services/auth.utils';
 import { selectRedirectUrl } from './auth.selectors';
 
 @Injectable()

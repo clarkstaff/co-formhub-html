@@ -1,11 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ticket } from '../../models/ticket.interface';
+import { AdaptiveFormDisplayComponent } from '../adaptive-form-display/adaptive-form-display.component';
+import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
 @Component({
   selector: 'app-approval-list-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AdaptiveFormDisplayComponent],
   template: `
     <!-- Ticket List View -->
     <div *ngIf="!selectedTicket" class="panel">
@@ -162,6 +164,16 @@ import { Ticket } from '../../models/ticket.interface';
           </div>
         </div>
 
+        <!-- Form Data Display -->
+        <div class="mb-4">
+          <h3 class="text-sm font-medium text-gray-500 mb-2">Form Details</h3>
+        </div>
+
+        <!-- Adaptive Form Display -->
+        <app-adaptive-form-display 
+          [ticket]="selectedTicket">
+        </app-adaptive-form-display>
+
         <!-- Additional Data -->
         <div class="mt-6" *ngIf="selectedTicket.tags && selectedTicket.tags.length > 0">
           <h3 class="text-sm font-medium text-gray-500 mb-2">Tags</h3>
@@ -213,28 +225,9 @@ export class ApprovalListViewComponent {
     return new Date(date).toLocaleDateString();
   }
 
-  // Helper method to display form data
+  // Helper method to display form data using adaptive summary
   getFormDataSummary(ticket: Ticket): string {
-    if (!ticket.customFormData?.formData) return ticket.description;
-    
-    const formData = ticket.customFormData.formData;
-    
-    // Handle specific form types based on the data structure
-    if (formData.totalPettyCash && formData.pettyCashHolder) {
-      return `Petty Cash: ${formData.totalPettyCash} - Holder: ${formData.pettyCashHolder}`;
-    }
-    
-    // Generic fallback - show key fields
-    const keys = Object.keys(formData).slice(0, 2);
-    const summary = keys.map(key => {
-      const value = formData[key];
-      if (Array.isArray(value)) {
-        return `${key}: ${value.length} items`;
-      }
-      return `${key}: ${value}`;
-    }).join(', ');
-    
-    return summary || ticket.description;
+    return TicketDisplayUtil.getAdaptiveFormDataSummary(ticket);
   }
 
   // Get reference ID for display

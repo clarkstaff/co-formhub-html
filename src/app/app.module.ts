@@ -3,7 +3,7 @@ import { BrowserModule, Title } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpBackend, HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpBackend, HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 
 //Routes
@@ -23,6 +23,9 @@ import { AuthEffects } from './core/store/auth/auth.effects';
 
 // Environment for dev tools
 import { environment } from '../environments/environment';
+
+// Auth interceptor
+import { AuthInterceptor } from './core/interceptors/auth.interceptor';
 
 // shared module
 import { SharedModule } from 'src/shared.module';
@@ -117,7 +120,14 @@ import { ThemeCustomizerComponent } from './layouts/theme-customizer';
         FaqComponent,
     ],
 
-    providers: [Title],
+    providers: [
+        Title,
+        {
+            provide: HTTP_INTERCEPTORS,
+            useClass: AuthInterceptor,
+            multi: true,
+        },
+    ],
     bootstrap: [AppComponent],
 })
 export class AppModule {}
