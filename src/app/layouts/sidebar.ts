@@ -1,25 +1,35 @@
-﻿import { Component } from '@angular/core';
+﻿import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { slideDownUp } from '../shared/animations';
+import { MENU_ITEMS, MenuItem } from './menus';
+import { environment } from '../../environments/environment';
 
 @Component({
     selector: 'sidebar',
-    templateUrl: './sidebar.html',
+    templateUrl: './sidebar-dynamic.html',
     animations: [slideDownUp],
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
     active = false;
     store: any;
     activeDropdown: string[] = [];
     parentDropdown: string = '';
+    menuItems = MENU_ITEMS;
+    currentEnvironment: 'local' | 'stage' | 'prod';
+    private _filteredMenuItems: MenuItem[] | null = null;
+    
     constructor(
         public translate: TranslateService,
         public storeData: Store<any>,
         public router: Router,
     ) {
         this.initStore();
+        // Determine current environment
+        this.currentEnvironment = environment.production ? 'prod' : 'stage';
+        // Initialize filtered menu items once
+        this.initFilteredMenuItems();
     }
     async initStore() {
         this.storeData
@@ -62,5 +72,36 @@ export class SidebarComponent {
         } else {
             this.activeDropdown.push(name);
         }
+    }
+
+    // Filter menu items based on environment
+    isMenuItemVisible(item: MenuItem): boolean {
+        return !item.environment || item.environment.includes(this.currentEnvironment);
+    }
+
+    // Initialize filtered menu items once
+    private initFilteredMenuItems(): void {
+        this._filteredMenuItems = this.filterMenuItems(this.menuItems);
+    }
+
+    // Helper method to filter menu items recursively
+    private filterMenuItems(items: MenuItem[]): MenuItem[] {
+        return items.filter(item => this.isMenuItemVisible(item)).map(item => {
+            if (item.children) {
+                return {
+                    ...item,
+                    children: this.filterMenuItems(item.children)
+                };
+            }
+            return item;
+        });
+    }
+
+    // Get cached filtered menu items
+    get filteredMenuItems(): MenuItem[] {
+        if (this._filteredMenuItems === null) {
+            this.initFilteredMenuItems();
+        }
+        return this._filteredMenuItems || [];
     }
 }

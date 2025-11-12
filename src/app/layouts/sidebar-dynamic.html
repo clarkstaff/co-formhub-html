@@ -1,0 +1,139 @@
+<div [ngClass]="{ 'dark text-white-dark': store.semidark }">
+    <nav class="sidebar fixed bottom-0 top-0 z-50 h-full min-h-screen w-[260px] shadow-[5px_0_25px_0_rgba(94,92,154,0.1)] transition-all duration-300">
+        <div class="h-full bg-white dark:bg-[#0e1726]">
+            <div class="flex items-center justify-between px-4 py-3">
+                <a routerLink="/" class="main-logo flex shrink-0 items-center">
+                    <img class="ml-[5px] w-8 flex-none" src="/assets/images/logo.svg" alt="" />
+                    <span class="align-middle text-2xl font-semibold dark:text-white-light lg:inline ltr:ml-1.5 rtl:mr-1.5">VRISTO</span>
+                </a>
+                
+                <!-- Environment indicator -->
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full" 
+                          [ngClass]="{
+                            'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300': currentEnvironment === 'prod',
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300': currentEnvironment === 'stage',
+                            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300': currentEnvironment === 'local'
+                          }">
+                        {{ currentEnvironment | uppercase }}
+                    </span>
+                    
+                    <a
+                        href="javascript:;"
+                        class="collapse-icon flex h-8 w-8 items-center rounded-full transition duration-300 hover:bg-gray-500/10 hover:text-primary dark:text-white-light dark:hover:bg-dark-light/10 rtl:rotate-180"
+                        (click)="storeData.dispatch({ type: 'toggleSidebar'})"
+                    >
+                        <icon-carets-down class="m-auto rotate-90" />
+                    </a>
+                </div>
+            </div>
+            <ng-scrollbar class="relative !h-[calc(100vh-80px)]" appearance="compact">
+                <ul class="relative space-y-0.5 p-4 py-0 font-semibold">
+                    <ng-container *ngFor="let item of filteredMenuItems">
+                        
+                        <!-- Heading -->
+                        <h2 *ngIf="item.type === 'heading'" class="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
+                            <icon-minus class="hidden h-5 w-4 flex-none" />
+                            <span>{{ (item.label | translate) || '&nbsp;' }}</span>
+                        </h2>
+
+                        <!-- Single Menu Item -->
+                        <li *ngIf="item.type === 'single'" class="nav-item">
+                            <a 
+                                [routerLink]="item.routerLink" 
+                                [target]="item.target || undefined"
+                                class="group nav-link" 
+                                routerLinkActive="active" 
+                                [routerLinkActiveOptions]="{exact: item.exact || false}"
+                                (click)="toggleMobileMenu()"
+                            >
+                                <div class="flex items-center">
+                                    <dynamic-icon 
+                                        [iconName]="item.icon || ''" 
+                                        cssClass="shrink-0 group-hover:!text-primary">
+                                    </dynamic-icon>
+
+                                    <span class="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">
+                                        {{ item.label | translate }}
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+
+                        <!-- Accordion Menu Item -->
+                        <li *ngIf="item.type === 'accordion'" class="accordion menu nav-item">
+                            <button
+                                type="button"
+                                class="nav-link group w-full"
+                                [ngClass]="{ active: activeDropdown.includes(item.id) }"
+                                (click)="toggleAccordion(item.id)"
+                            >
+                                <div class="flex items-center">
+                                    <dynamic-icon 
+                                        [iconName]="item.icon || ''" 
+                                        cssClass="shrink-0 group-hover:!text-primary">
+                                    </dynamic-icon>
+
+                                    <span class="text-black dark:text-[#506690] dark:group-hover:text-white-dark ltr:pl-3 rtl:pr-3">
+                                        {{ item.label | translate }}
+                                    </span>
+                                </div>
+                                <div [ngClass]="{ 'rtl:rotate-90 -rotate-90': !activeDropdown.includes(item.id) }">
+                                    <icon-caret-down />
+                                </div>
+                            </button>
+                            <div [@slideDownUp]="!activeDropdown.includes(item.id)" class="accordion-content">
+                                <ul class="sub-menu text-gray-500">
+                                    <ng-container *ngFor="let subItem of item.children">
+                                        
+                                        <!-- Regular Sub-item -->
+                                        <li *ngIf="subItem.type === 'single'">
+                                            <a 
+                                                [routerLink]="subItem.routerLink" 
+                                                [target]="subItem.target || undefined"
+                                                routerLinkActive="active" 
+                                                [routerLinkActiveOptions]="{exact: subItem.exact || false}"
+                                                (click)="toggleMobileMenu()"
+                                            >
+                                                {{ subItem.label | translate }}
+                                            </a>
+                                        </li>
+
+                                        <!-- Nested Accordion Sub-item -->
+                                        <li *ngIf="subItem.type === 'accordion'" class="accordion menu nav-item">
+                                            <button
+                                                type="button"
+                                                class="w-full before:h-[5px] before:w-[5px] before:rounded before:bg-gray-300 hover:bg-gray-100 dark:text-[#888ea8] dark:hover:bg-gray-900 ltr:before:mr-2 rtl:before:ml-2"
+                                                (click)="toggleAccordion(subItem.id, item.id)"
+                                            >
+                                                {{ subItem.label | translate }}
+                                                <div class="ltr:ml-auto rtl:mr-auto" [ngClass]="{ 'rtl:rotate-90 -rotate-90': !activeDropdown.includes(subItem.id) }">
+                                                    <icon-carets-down [fill]="true" class="h-4 w-4" />
+                                                </div>
+                                            </button>
+
+                                            <div [@slideDownUp]="!activeDropdown.includes(subItem.id)" class="accordion-content">
+                                                <ul class="sub-menu text-gray-500">
+                                                    <li *ngFor="let nestedItem of subItem.children" routerLinkActive="active" (click)="toggleMobileMenu()">
+                                                        <a 
+                                                            [routerLink]="nestedItem.routerLink" 
+                                                            [target]="nestedItem.target || undefined"
+                                                        >
+                                                            {{ nestedItem.label | translate }}
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </li>
+
+                                    </ng-container>
+                                </ul>
+                            </div>
+                        </li>
+
+                    </ng-container>
+                </ul>
+            </ng-scrollbar>
+        </div>
+    </nav>
+</div>

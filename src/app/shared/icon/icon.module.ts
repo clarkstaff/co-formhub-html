@@ -163,6 +163,8 @@ import { IconXComponent } from './icon-x';
 import { IconXCircleComponent } from './icon-x-circle';
 import { IconZipFileComponent } from './icon-zip-file';
 import { IconCodeFileComponent } from 'src/app/shared/icon/icon-code-file';
+import { IconTicketComponent } from './menu/icon-ticket';
+import { DynamicIconComponent } from './dynamic-icon.component';
 
 @NgModule({
     imports: [CommonModule],
@@ -175,6 +177,7 @@ import { IconCodeFileComponent } from 'src/app/shared/icon/icon-code-file';
         IconMenuComponentsComponent,
         IconMenuContactsComponent,
         IconMenuDashboardComponent,
+        IconTicketComponent,
         IconMenuDatatablesComponent,
         IconMenuDocumentationComponent,
         IconMenuDragAndDropComponent,
@@ -330,6 +333,7 @@ import { IconCodeFileComponent } from 'src/app/shared/icon/icon-code-file';
         IconXCircleComponent,
         IconZipFileComponent,
         IconCodeFileComponent,
+        DynamicIconComponent,
     ],
     exports: [
         IconMenuAppsComponent,
@@ -338,6 +342,7 @@ import { IconCodeFileComponent } from 'src/app/shared/icon/icon-code-file';
         IconMenuChartsComponent,
         IconMenuChatComponent,
         IconMenuComponentsComponent,
+        IconTicketComponent,
         IconMenuContactsComponent,
         IconMenuDashboardComponent,
         IconMenuDatatablesComponent,
@@ -495,6 +500,7 @@ import { IconCodeFileComponent } from 'src/app/shared/icon/icon-code-file';
         IconXCircleComponent,
         IconZipFileComponent,
         IconCodeFileComponent,
+        DynamicIconComponent,
     ],
 })
 export class IconModule {}
