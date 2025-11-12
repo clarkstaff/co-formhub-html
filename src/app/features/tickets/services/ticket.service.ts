@@ -213,17 +213,21 @@ export class TicketService {
     const formName = customForm.form_name || 'Unknown Form';
     const category = customForm.category || 'General';
     
-    // Generate a more descriptive title
-    const title = `${formName} (${referenceId}) - ${stageName}`;
+    // Use enhanced title and description if available from backend
+    const title = task.title || `${formName} (${referenceId}) - ${stageName}`;
+    const description = task.description || this.generateTaskDescription(task, formData, workflowStage);
     
-    // Create a more detailed description based on form data
-    const description = this.generateTaskDescription(task, formData, workflowStage);
+    // Extract assignee information from the enhanced response
+    const assigneeInfo = this.extractAssigneeInfo(task);
     
     // Extract tags from various sources
     const tags = this.generateTaskTags(task, customForm, workflow, workflowStage);
     
-    // Determine priority based on form content and workflow
-    const priority = this.extractPriorityFromTask(task);
+    // Use backend-calculated priority if available, otherwise determine from form content
+    const priority = task.priority || this.extractPriorityFromTask(task);
+    
+    // Use backend-calculated due date if available
+    const dueDate = task.dueDate || task.due_date;
 
     return {
       id: task.id.toString(),
@@ -232,13 +236,16 @@ export class TicketService {
       status: this.mapTaskStatusToTicketStatus(task.status),
       priority: priority,
       type: this.mapFormTypeToTicketType(customForm.form_type),
-      assigneeId: task.processed_by_id?.toString(),
-      assigneeName: task.processed_by?.name,
+      assigneeId: assigneeInfo.primaryAssigneeId,
+      assigneeName: assigneeInfo.primaryAssigneeName,
+      assigneeIds: assigneeInfo.assigneeIds,
+      assigneeNames: assigneeInfo.assigneeNames,
+      assigneeDetails: assigneeInfo.assigneeDetails,
       reporterId: customFormResponse.created_by?.toString() || '0',
-      reporterName: customFormResponse.creator?.name || 'System',
+      reporterName: customFormResponse.creator?.name || 'Unknown',
       createdAt: new Date(task.created_at),
       updatedAt: new Date(task.updated_at),
-      dueDate: task.due_date ? new Date(task.due_date) : undefined,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
       tags: tags,
       customFormData: {
         taskId: task.id,
@@ -248,9 +255,75 @@ export class TicketService {
         formId: customFormResponse.custom_form_id || 0,
         customForm: customForm,
         category: category,
-        formType: customForm.form_type
+        formType: customForm.form_type,
+        assignees: task.assignees || [] // Include assignee data
       }
     };
+  }
+
+  /**
+   * Extract assignee information from task data
+   */
+  private extractAssigneeInfo(task: any): { 
+    primaryAssigneeId?: string; 
+    primaryAssigneeName?: string;
+    assigneeIds?: string[];
+    assigneeNames?: string[];
+    assigneeDetails?: any[];
+    // Keep legacy fields for backward compatibility
+    assigneeId?: string;
+    assigneeName?: string;
+  } {
+    // Use processed_by first (if task is assigned to someone specific)
+    if (task.processed_by) {
+      return {
+        primaryAssigneeId: task.processed_by.id?.toString(),
+        primaryAssigneeName: task.processed_by.name,
+        assigneeId: task.processed_by.id?.toString(), // Legacy support
+        assigneeName: task.processed_by.name, // Legacy support
+        assigneeIds: [task.processed_by.id?.toString()].filter(Boolean),
+        assigneeNames: [task.processed_by.name].filter(Boolean),
+        assigneeDetails: [task.processed_by]
+      };
+    }
+    
+    // Use assignees from workflow stage (multiple assignees)
+    if (task.assignees && task.assignees.length > 0) {
+      const assigneeIds = task.assignees.map((a: any) => a.assignee_id?.toString()).filter(Boolean);
+      const assigneeNames = task.assignees.map((a: any) => a.assignee_name).filter(Boolean);
+      const primaryAssignee = task.assignees[0]; // Use first assignee as primary
+      
+      return {
+        primaryAssigneeId: primaryAssignee.assignee_id?.toString(),
+        primaryAssigneeName: primaryAssignee.assignee_name || 'Assigned',
+        assigneeId: primaryAssignee.assignee_id?.toString(), // Legacy support  
+        assigneeName: this.formatMultipleAssignees(assigneeNames), // Legacy support with multiple names
+        assigneeIds: assigneeIds,
+        assigneeNames: assigneeNames,
+        assigneeDetails: task.assignees
+      };
+    }
+    
+    return { 
+      primaryAssigneeId: undefined, 
+      primaryAssigneeName: undefined,
+      assigneeId: undefined,
+      assigneeName: undefined,
+      assigneeIds: [],
+      assigneeNames: [],
+      assigneeDetails: []
+    };
+  }
+
+  /**
+   * Format multiple assignee names for display in legacy assigneeName field
+   */
+  private formatMultipleAssignees(assigneeNames: string[]): string {
+    if (assigneeNames.length === 0) return 'Unassigned';
+    if (assigneeNames.length === 1) return assigneeNames[0];
+    if (assigneeNames.length === 2) return `${assigneeNames[0]} & ${assigneeNames[1]}`;
+    if (assigneeNames.length <= 3) return `${assigneeNames[0]}, ${assigneeNames[1]} & ${assigneeNames[2]}`;
+    return `${assigneeNames[0]} +${assigneeNames.length - 1} others`;
   }
 
   /**

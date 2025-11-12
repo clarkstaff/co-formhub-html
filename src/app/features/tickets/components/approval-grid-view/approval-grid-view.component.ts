@@ -2,11 +2,12 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ticket } from '../../models/ticket.interface';
 import { FormDataTableComponent } from '../form-data-table/form-data-table.component';
+import { AssigneeDisplayComponent } from '../../../../shared/components/assignee-display/assignee-display.component';
 
 @Component({
   selector: 'app-approval-grid-view',
   standalone: true,
-  imports: [CommonModule, FormDataTableComponent],
+  imports: [CommonModule, FormDataTableComponent, AssigneeDisplayComponent],
   template: `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       
@@ -33,7 +34,13 @@ import { FormDataTableComponent } from '../form-data-table/form-data-table.compo
             <div class="flex justify-between items-start">
               <div>
                 <h3 class="font-medium text-gray-900">{{ ticket.title }}</h3>
-                <p class="text-sm text-gray-500 mt-1">{{ ticket.assigneeName || ticket.reporterName }}</p>
+                <div class="mt-1">
+                  <app-assignee-display 
+                    [assigneeDetails]="ticket.assigneeDetails || []"
+                    displayMode="compact"
+                    cssClass="text-sm text-gray-500">
+                  </app-assignee-display>
+                </div>
                 <p class="text-xs text-blue-600 mt-1" *ngIf="getReferenceId(ticket) !== ticket.id">
                   Ref: {{ getReferenceId(ticket) }}
                 </p>
@@ -107,9 +114,13 @@ import { FormDataTableComponent } from '../form-data-table/form-data-table.compo
             <div>
               <h3 class="text-sm font-medium text-gray-500">Details</h3>
               <div class="mt-1 space-y-2">
-                <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Assignee:</span>
-                  <span class="text-sm font-medium">{{ selectedTicket.assigneeName || selectedTicket.reporterName }}</span>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-gray-600">Assigned to:</span>
+                  <app-assignee-display 
+                    [assigneeDetails]="selectedTicket.assigneeDetails || []"
+                    displayMode="detailed"
+                    cssClass="text-sm">
+                  </app-assignee-display>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-sm text-gray-600">Due Date:</span>

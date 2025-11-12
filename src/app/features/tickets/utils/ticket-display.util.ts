@@ -238,12 +238,6 @@ export class TicketDisplayUtil {
     switch (structure.formType) {
       case 'copc':
         return this.generateCOPCDisplay(ticket, formData, structure);
-      case 'purchase_request':
-        return this.generatePurchaseRequestDisplay(ticket, formData, structure);
-      case 'leave_request':
-        return this.generateLeaveRequestDisplay(ticket, formData, structure);
-      case 'expense_report':
-        return this.generateExpenseReportDisplay(ticket, formData, structure);
       default:
         return this.generateGenericFormDisplay(ticket, formData, structure);
     }
@@ -254,8 +248,7 @@ export class TicketDisplayUtil {
    */
   private static generateCOPCDisplay(ticket: Ticket, formData: any, structure: any): any {
     // Header
-    const header = {
-    };
+    const header = null;
 
     // Main fields (non-array, non-summary fields)
     const fields = [];
@@ -341,143 +334,6 @@ export class TicketDisplayUtil {
     });
 
     return { header, fields, tables, summary, actions: ['approve', 'reject'] };
-  }
-
-  /**
-   * Generate display for purchase requests with computed totals
-   */
-  private static generatePurchaseRequestDisplay(ticket: Ticket, formData: any, structure: any): any {
-    const header = {
-      title: formData.formTitle || 'PURCHASE REQUEST',
-      status: ticket.status
-    };
-
-    const fields = [];
-    if (formData.requestDate) fields.push({ label: 'Request Date', value: formData.requestDate, type: 'date', displayType: 'date' as const });
-    if (formData.requestor) fields.push({ label: 'Requestor', value: formData.requestor, type: 'text', displayType: 'field' as const });
-    if (formData.department) fields.push({ label: 'Department', value: formData.department, type: 'text', displayType: 'field' as const });
-    if (formData.vendor) fields.push({ label: 'Vendor', value: formData.vendor, type: 'text', displayType: 'field' as const });
-    if (formData.urgency) fields.push({ label: 'Urgency', value: formData.urgency, type: 'text', displayType: 'badge' as const });
-
-    const tables = [];
-    if (formData.items && Array.isArray(formData.items)) {
-      tables.push({
-        title: 'Requested Items',
-        data: formData.items,
-        columns: this.generateColumnsFromObject(formData.items[0]).map(col => ({
-          ...col,
-          align: col.type === 'currency' || col.type === 'number' ? 'right' as const : 'left' as const
-        }))
-      });
-    }
-
-    // Calculate totals from items if not provided
-    const summary = [];
-    let calculatedTotal = 0;
-    if (formData.items && Array.isArray(formData.items)) {
-      calculatedTotal = formData.items.reduce((sum: number, item: any) => {
-        const amount = parseFloat(String(item.total || item.totalPrice || item.amount || '0').replace(/[^\d.]/g, '')) || 0;
-        return sum + amount;
-      }, 0);
-    }
-
-    // Use provided total or calculated total
-    const totalAmount = formData.totalAmount ? 
-      parseFloat(String(formData.totalAmount).replace(/[^\d.]/g, '')) || 0 : 
-      calculatedTotal;
-
-    if (totalAmount > 0) {
-      summary.push({ label: 'Total Amount', value: totalAmount.toFixed(2), type: 'subtotal' as const });
-    }
-
-    if (formData.tax) {
-      const taxAmount = parseFloat(String(formData.tax).replace(/[^\d.]/g, '')) || 0;
-      summary.push({ label: 'Tax', value: taxAmount.toFixed(2), type: 'subtotal' as const });
-      
-      // Calculate grand total if not provided
-      const grandTotal = formData.grandTotal ? 
-        parseFloat(String(formData.grandTotal).replace(/[^\d.]/g, '')) || 0 : 
-        totalAmount + taxAmount;
-      
-      summary.push({ label: 'Grand Total', value: grandTotal.toFixed(2), type: 'total' as const });
-    }
-
-    return { header, fields, tables, summary, actions: ['approve', 'reject'] };
-  }
-
-  /**
-   * Generate display for expense reports
-   */
-  private static generateExpenseReportDisplay(ticket: Ticket, formData: any, structure: any): any {
-    const header = {
-      title: formData.formTitle || 'EXPENSE REPORT',
-      status: ticket.status
-    };
-
-    const fields = [];
-    if (formData.employee) fields.push({ label: 'Employee', value: formData.employee, type: 'text', displayType: 'field' as const });
-    if (formData.department) fields.push({ label: 'Department', value: formData.department, type: 'text', displayType: 'field' as const });
-    if (formData.period) fields.push({ label: 'Period', value: formData.period, type: 'text', displayType: 'field' as const });
-    if (formData.submissionDate) fields.push({ label: 'Submission Date', value: formData.submissionDate, type: 'date', displayType: 'date' as const });
-
-    const tables: Array<{
-      title: string;
-      data: any[];
-      columns: Array<{ key: string; label: string; type?: string; align?: 'left' | 'right' | 'center' }>;
-    }> = [];
-    
-    if (formData.expenses && Array.isArray(formData.expenses)) {
-      tables.push({
-        title: 'Expense Details',
-        data: formData.expenses,
-        columns: this.generateColumnsFromObject(formData.expenses[0]).map(col => ({
-          ...col,
-          align: col.type === 'currency' || col.type === 'number' ? 'right' as const : 'left' as const
-        }))
-      });
-    }
-
-    const summary = [];
-    if (formData.totalExpenses) summary.push({ label: 'Total Expenses', value: formData.totalExpenses, type: 'total' as const });
-    if (formData.reimbursementAmount) summary.push({ label: 'Reimbursement', value: formData.reimbursementAmount, type: 'balance' as const });
-
-    return { header, fields, tables, summary, actions: ['approve', 'reject'] };
-  }
-
-  /**
-   * Generate display for leave requests
-   */
-  private static generateLeaveRequestDisplay(ticket: Ticket, formData: any, structure: any): any {
-    const header = {
-      title: formData.formTitle || 'LEAVE REQUEST',
-      status: ticket.status
-    };
-
-    const fields = [];
-    if (formData.employee) fields.push({ label: 'Employee', value: formData.employee, type: 'text', displayType: 'field' as const });
-    if (formData.leaveType) fields.push({ label: 'Leave Type', value: formData.leaveType, type: 'text', displayType: 'badge' as const });
-    if (formData.startDate) fields.push({ label: 'Start Date', value: formData.startDate, type: 'date', displayType: 'date' as const });
-    if (formData.endDate) fields.push({ label: 'End Date', value: formData.endDate, type: 'date', displayType: 'date' as const });
-    if (formData.days) fields.push({ label: 'Total Days', value: formData.days, type: 'number', displayType: 'field' as const });
-    if (formData.reason) fields.push({ label: 'Reason', value: formData.reason, type: 'text', displayType: 'field' as const });
-
-    const tables: Array<{
-      title: string;
-      data: any[];
-      columns: Array<{ key: string; label: string; type?: string; align?: 'left' | 'right' | 'center' }>;
-    }> = [];
-    // Leave requests typically don't have tables, but handle if they do
-    structure.arrayFields.forEach((fieldName: string) => {
-      if (formData[fieldName] && Array.isArray(formData[fieldName])) {
-        tables.push({
-          title: this.formatFieldName(fieldName),
-          data: formData[fieldName],
-          columns: this.generateColumnsFromObject(formData[fieldName][0])
-        });
-      }
-    });
-
-    return { header, fields, tables, summary: [], actions: ['approve', 'reject'] };
   }
 
   /**

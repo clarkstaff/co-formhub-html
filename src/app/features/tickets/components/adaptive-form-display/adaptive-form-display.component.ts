@@ -12,7 +12,7 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
     <div *ngIf="ticket && formDisplay" class="min-vh-100 bg-light p-4">
       <div class="container">
         <!-- Header Section -->
-        <div class="d-flex align-items-center gap-3 mb-5">
+        <div class="d-flex align-items-center gap-3 mb-5" *ngIf="formDisplay.header">
           <h1 class="h3 fw-semibold mb-0">{{ formDisplay.header.title }}</h1>
           <span class="badge ms-auto" 
                 [ngClass]="{

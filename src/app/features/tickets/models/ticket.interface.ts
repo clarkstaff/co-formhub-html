@@ -7,6 +7,10 @@ export interface Ticket {
   type: TicketType;
   assigneeId?: string;
   assigneeName?: string;
+  // Multiple assignees support
+  assigneeIds?: string[];
+  assigneeNames?: string[];
+  assigneeDetails?: TicketAssignee[];
   reporterId: string;
   reporterName: string;
   createdAt: Date;
@@ -24,6 +28,7 @@ export interface Ticket {
     customForm?: any;
     category?: string;
     formType?: string;
+    assignees?: any[]; // Include assignee data from workflow stage
   };
 }
 
@@ -47,6 +52,14 @@ export enum TicketType {
   FEATURE = 'feature',
   SUPPORT = 'support',
   TASK = 'task'
+}
+
+export interface TicketAssignee {
+  id: number;
+  assignee_type: string;
+  assignee_id: number;
+  assignee_name: string;
+  assignee_details?: any;
 }
 
 export interface TicketAttachment {

@@ -2,12 +2,13 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ticket } from '../../models/ticket.interface';
 import { AdaptiveFormDisplayComponent } from '../adaptive-form-display/adaptive-form-display.component';
+import { AssigneeDisplayComponent } from '../../../../shared/components/assignee-display/assignee-display.component';
 import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
 @Component({
   selector: 'app-approval-list-view',
   standalone: true,
-  imports: [CommonModule, AdaptiveFormDisplayComponent],
+  imports: [CommonModule, AdaptiveFormDisplayComponent, AssigneeDisplayComponent],
   template: `
     <!-- Ticket List View -->
     <div *ngIf="!selectedTicket" class="panel">
@@ -48,7 +49,10 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
                 </span>
               </td>
               <td (click)="onSelectTicket(ticket)">
-                {{ ticket.assigneeName || ticket.reporterName }}
+                <app-assignee-display 
+                  [assigneeDetails]="ticket.assigneeDetails || []"
+                  displayMode="compact">
+                </app-assignee-display>
               </td>
               <td (click)="onSelectTicket(ticket)">
                 {{ formatDate(ticket.dueDate || ticket.createdAt) }}
@@ -138,7 +142,7 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
             
             <!-- Custom Form Data Section -->
             <div *ngIf="selectedTicket.customFormData" class="mt-4">
-              <h3 class="text-sm font-medium text-gray-500 mb-2">Form Data Summary</h3>
+              <h3 class="text-sm font-medium text-gray-500 mb-2">Summary</h3>
               <div class="bg-gray-50 p-3 rounded text-sm">
                 <p><strong>Reference:</strong> {{ selectedTicket.customFormData.referenceId }}</p>
                 <p class="mt-1">{{ getFormDataSummary(selectedTicket) }}</p>
@@ -149,8 +153,11 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
             <h3 class="text-sm font-medium text-gray-500 mb-2">Details</h3>
             <div class="space-y-2">
               <div class="flex justify-between">
-                <span class="text-sm text-gray-600">Assignee:</span>
-                <span class="text-sm font-medium">{{ selectedTicket.assigneeName || selectedTicket.reporterName }}</span>
+                <span class="text-sm text-gray-600">Assigned to:</span>
+                <app-assignee-display 
+                  [assigneeDetails]="selectedTicket.assigneeDetails || []"
+                  displayMode="compact">
+                </app-assignee-display>
               </div>
               <div class="flex justify-between">
                 <span class="text-sm text-gray-600">Due Date:</span>
@@ -166,7 +173,7 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
         <!-- Form Data Display -->
         <div class="mb-4">
-          <h3 class="text-sm font-medium text-gray-500 mb-2">Form Details</h3>
+          <h3 class="text-sm font-medium text-gray-500 mb-2">Details</h3>
         </div>
 
         <!-- Adaptive Form Display -->
