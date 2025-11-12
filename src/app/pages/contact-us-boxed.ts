@@ -3,7 +3,7 @@ import { toggleAnimation } from 'src/app/shared/animations';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { AppService } from 'src/app/service/app.service';
+import { AppService } from '../service/app.service';
 
 @Component({
     templateUrl: './contact-us-boxed.html',

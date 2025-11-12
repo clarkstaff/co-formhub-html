@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { AppService } from '../service/app.service';
 import { Router, NavigationEnd, Event as RouterEvent } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { AppService } from '../service/app.service';
 
 @Component({
     selector: 'app-root',

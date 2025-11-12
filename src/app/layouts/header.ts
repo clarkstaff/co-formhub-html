@@ -2,9 +2,9 @@
 import { toggleAnimation } from 'src/app/shared/animations';
 import { Store } from '@ngrx/store';
 import { Router, NavigationEnd } from '@angular/router';
-import { AppService } from '../service/app.service';
 import { DomSanitizer } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
+import { AppService } from '../service/app.service';
 
 @Component({
     selector: 'header',
