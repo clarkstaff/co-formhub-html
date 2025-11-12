@@ -76,7 +76,7 @@ export const MENU_ITEMS: MenuItem[] = [
 			{
 				id: 'kanban-board',
 				label: 'Kanban Board',
-				routerLink: '/app/tickets/kanban-board',
+				routerLink: '/tickets/kanban',
 				type: 'single',
 				exact: true,
 				environment: ['local', 'stage']
@@ -84,7 +84,7 @@ export const MENU_ITEMS: MenuItem[] = [
 			{
 				id: 'table-view',
 				label: 'Table View',
-				routerLink: '/app/tickets/table-view',
+				routerLink: '/tickets/table',
 				type: 'single',
 				exact: true,
 				environment: ['local', 'stage']
@@ -92,7 +92,7 @@ export const MENU_ITEMS: MenuItem[] = [
 			{
 				id: 'approvals',
 				label: 'Approvals',
-				routerLink: '/app/tickets/approvals',
+				routerLink: '/tickets/approvals',
 				type: 'single',
 				exact: true,
 				environment: ['local', 'stage']

@@ -1,0 +1,110 @@
+<!-- Backdrop -->
+<div 
+  *ngIf="isOpen" 
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  (click)="onBackdropClick($event)"
+>
+  <!-- Dialog -->
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <!-- Icon -->
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center"
+               [ngClass]="{
+                 'bg-green-100': data.type === 'approve',
+                 'bg-red-100': data.type === 'reject'
+               }">
+            <!-- Approve Icon -->
+            <svg *ngIf="data.type === 'approve'" 
+                 class="w-6 h-6 text-green-600" 
+                 fill="none" 
+                 stroke="currentColor" 
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M5 13l4 4L19 7">
+              </path>
+            </svg>
+            
+            <!-- Reject Icon -->
+            <svg *ngIf="data.type === 'reject'" 
+                 class="w-6 h-6 text-red-600" 
+                 fill="none" 
+                 stroke="currentColor" 
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M6 18L18 6M6 6l12 12">
+              </path>
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Title -->
+        <div class="ml-4">
+          <h3 class="text-lg font-medium text-gray-900">{{ data.title }}</h3>
+        </div>
+        
+        <!-- Close Button -->
+        <button 
+          class="ml-auto text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 rounded-full p-1"
+          (click)="onClose()"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Content -->
+    <div class="px-6 py-4">
+      <p class="text-sm text-gray-600 mb-4">{{ data.message }}</p>
+      
+      <!-- Ticket Title (if provided) -->
+      <div *ngIf="data.ticketTitle" class="bg-gray-50 rounded-md p-3 mb-4">
+        <p class="text-sm font-medium text-gray-900">Ticket:</p>
+        <p class="text-sm text-gray-700">{{ data.ticketTitle }}</p>
+      </div>
+      
+      <!-- Skip Next Time Option -->
+      <div class="flex items-center">
+        <input 
+          type="checkbox" 
+          id="skipNextTime" 
+          [(ngModel)]="skipNextTime"
+          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        >
+        <label for="skipNextTime" class="ml-2 block text-sm text-gray-700">
+          Don't ask for confirmation next time
+        </label>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+      <!-- Cancel Button -->
+      <button 
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+        (click)="onCancel()"
+      >
+        {{ data.cancelText }}
+      </button>
+      
+      <!-- Confirm Button -->
+      <button 
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
+        [ngClass]="getConfirmButtonClass()"
+        (click)="onConfirm()"
+      >
+        {{ data.confirmText }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,128 @@
+/* Approval Board Component Styles */
+.approval-view {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Badge styles for process types */
+.badge-process-bug {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.badge-process-feature {
+  background-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.badge-process-support {
+  background-color: #bbf7d0;
+  color: #14532d;
+}
+
+.badge-process-task {
+  background-color: #e9d5ff;
+  color: #581c87;
+}
+
+/* Priority badge colors to match React design */
+.badge-priority-high {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.badge-priority-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-priority-low {
+  background-color: #bbf7d0;
+  color: #14532d;
+}
+
+.badge-priority-critical {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* Custom scrollbar for better UI */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Grid responsive adjustments */
+@media (max-width: 1024px) {
+  .lg\\:col-span-2 {
+    grid-column: span 1 / span 1;
+  }
+  
+  .lg\\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+}
+
+/* Focus states for accessibility */
+button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Hover effects */
+.cursor-pointer:hover {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Selected task highlighting */
+.bg-blue-50 {
+  border-left: 3px solid #3b82f6;
+}
+
+/* Button hover effects */
+.bg-red-100:hover {
+  background-color: #fca5a5;
+}
+
+.bg-green-100:hover {
+  background-color: #86efac;
+}

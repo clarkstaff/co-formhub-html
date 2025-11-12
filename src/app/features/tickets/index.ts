@@ -1,0 +1,1 @@
+export * from './pages/approval-board/approval-board.component';

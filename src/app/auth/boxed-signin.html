@@ -19,27 +19,106 @@
                         <h1 class="text-3xl font-extrabold uppercase !leading-snug text-primary md:text-4xl">Formhub</h1>
                         <p class="text-base font-bold leading-normal text-white-dark">Centralize your tickets. Simplify your workflow.</p>
                     </div>
-                    <form class="space-y-5 dark:text-white" (submit)="router.navigate(['/'])">
+                    <form [formGroup]="loginForm" class="space-y-5 dark:text-white" (ngSubmit)="submit()">
+                        <!-- Error Messages -->
+                        <div *ngIf="hasError$ | async" class="mb-4 rounded-md bg-red-50 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm font-medium text-red-800">
+                                        {{ responseMessage$ | async }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email Field -->
                         <div>
-                            <label for="Email">Email</label>
-                            <div class="relative text-white-dark">
-                                <input id="Email" type="email" placeholder="Enter Email" class="form-input ps-10 placeholder:text-white-dark" />
+                            <label for="Email" class="block text-sm font-medium text-gray-700 dark:text-white">Email</label>
+                            <div class="relative mt-1 text-white-dark">
+                                <input 
+                                    id="Email" 
+                                    type="email" 
+                                    formControlName="email"
+                                    placeholder="Enter Email" 
+                                    class="form-input ps-10 placeholder:text-white-dark"
+                                    [class.border-red-500]="isFieldInvalid('email')"
+                                    autocomplete="email" />
                                 <span class="absolute start-4 top-1/2 -translate-y-1/2">
                                     <icon-mail [fill]="true" />
                                 </span>
                             </div>
+                            <!-- Email Validation Error -->
+                            <div *ngIf="isFieldInvalid('email')" class="mt-1 text-sm text-red-600">
+                                {{ getFieldError('email') }}
+                            </div>
                         </div>
+
+                        <!-- Password Field -->
                         <div>
-                            <label for="Password">Password</label>
-                            <div class="relative text-white-dark">
-                                <input id="Password" type="password" placeholder="Enter Password" class="form-input ps-10 placeholder:text-white-dark" />
+                            <label for="Password" class="block text-sm font-medium text-gray-700 dark:text-white">Password</label>
+                            <div class="relative mt-1 text-white-dark">
+                                <input 
+                                    id="Password" 
+                                    [type]="viewPassword ? 'text' : 'password'" 
+                                    formControlName="password"
+                                    placeholder="Enter Password" 
+                                    class="form-input ps-10 pe-10 placeholder:text-white-dark"
+                                    [class.border-red-500]="isFieldInvalid('password')"
+                                    autocomplete="current-password" />
                                 <span class="absolute start-4 top-1/2 -translate-y-1/2">
                                     <icon-lock-dots [fill]="true" />
                                 </span>
+                                <!-- Password Toggle -->
+                                <button 
+                                    type="button"
+                                    class="absolute end-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    (click)="toggleViewPassword()">
+                                    <svg *ngIf="!viewPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
+                                    <svg *ngIf="viewPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <!-- Password Validation Error -->
+                            <div *ngIf="isFieldInvalid('password')" class="mt-1 text-sm text-red-600">
+                                {{ getFieldError('password') }}
+                            </div>
+                            <!-- Caps Lock Warning -->
+                            <div *ngIf="isCaps" class="mt-1 text-sm text-amber-600 flex items-center">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                </svg>
+                                Caps Lock is on
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-gradient !mt-6 w-full border-0 uppercase shadow-[0_10px_20px_-10px_rgba(67,97,238,0.44)]">
-                            Sign in
+
+                        <!-- Submit Button -->
+                        <button 
+                            type="submit" 
+                            class="btn btn-gradient !mt-6 w-full border-0 uppercase shadow-[0_10px_20px_-10px_rgba(67,97,238,0.44)] disabled:opacity-50 disabled:cursor-not-allowed"
+                            [disabled]="(isLoading$ | async) || !(isClickable$ | async)"
+                            [class.opacity-50]="(isLoading$ | async)"
+                            [class.cursor-not-allowed]="(isLoading$ | async)">
+                            
+                            <!-- Loading Spinner -->
+                            <div *ngIf="isLoading$ | async" class="flex items-center justify-center">
+                                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Signing in...
+                            </div>
+                            
+                            <!-- Default Button Text -->
+                            <span *ngIf="!(isLoading$ | async)">Sign in</span>
                         </button>
                     </form>
                     <div class="relative my-7 text-center md:mb-9">
@@ -49,13 +128,15 @@
                     <div class="mb-10 md:mb-[60px]">
                         <ul class="flex justify-center gap-3.5 text-white">
                             <li>
-                                <a
-                                    href="javascript:"
-                                    class="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 transition hover:scale-110"
+                                <button
+                                    type="button"
+                                    (click)="handleGoogleSignIn()"
+                                    [disabled]="isLoading$ | async"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-full p-0 transition hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                                     style="background: linear-gradient(135deg, rgba(239, 18, 98, 1) 0%, rgba(67, 97, 238, 1) 100%)"
-                                >
+                                    title="Sign in with Google">
                                     <icon-google />
-                                </a>
+                                </button>
                             </li>
                         </ul>
                     </div>

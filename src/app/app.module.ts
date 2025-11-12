@@ -13,7 +13,16 @@ import { AppComponent } from './app.component';
 
 // store
 import { StoreModule } from '@ngrx/store';
-import { indexReducer } from './store/index.reducer';
+import { EffectsModule } from '@ngrx/effects';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
+import { indexReducer } from './core/store/index.reducer';
+
+// Auth store
+import { authReducer } from './core/store/auth/auth.reducer';
+import { AuthEffects } from './core/store/auth/auth.effects';
+
+// Environment for dev tools
+import { environment } from '../environments/environment';
 
 // shared module
 import { SharedModule } from 'src/shared.module';
@@ -75,7 +84,16 @@ import { ThemeCustomizerComponent } from './layouts/theme-customizer';
                 deps: [HttpBackend],
             },
         }),
-        StoreModule.forRoot({ index: indexReducer }),
+        StoreModule.forRoot({ 
+            index: indexReducer,
+            auth: authReducer
+        }),
+        EffectsModule.forRoot([AuthEffects]),
+        StoreDevtoolsModule.instrument({
+            maxAge: 25,
+            logOnly: environment.production,
+            autoPause: true,
+        }),
         SharedModule.forRoot(),
     ],
     declarations: [

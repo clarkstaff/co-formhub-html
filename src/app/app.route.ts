@@ -28,6 +28,7 @@ import { AuthLayout } from './layouts/auth-layout';
 // pages
 import { KnowledgeBaseComponent } from './pages/knowledge-base';
 import { FaqComponent } from './pages/faq';
+import { TicketComponent } from './features/dashboard/pages/ticket/ticket.component';
 
 export const routes: Routes = [
     {
@@ -35,6 +36,7 @@ export const routes: Routes = [
         component: AppLayout,
         children: [
             // dashboard
+            { path: 'tickets', component: TicketComponent, data: { title: 'Dashboard' } },
             { path: '', component: IndexComponent, data: { title: 'Sales Admin' } },
             { path: 'analytics', component: AnalyticsComponent, data: { title: 'Analytics Admin' } },
             { path: 'finance', component: FinanceComponent, data: { title: 'Finance Admin' } },
@@ -73,6 +75,11 @@ export const routes: Routes = [
 
             // tables
             { path: 'tables', component: TablesComponent, data: { title: 'Tables' } },
+            {
+                path: 'tickets',
+                loadChildren: () =>
+                import('./features/tickets/tickets.module').then(m => m.TicketsModule)
+            },
             { path: '', loadChildren: () => import('./datatables/datatables.module').then((d) => d.DatatablesModule) },
         ],
     },
