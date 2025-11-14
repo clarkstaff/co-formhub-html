@@ -39,7 +39,7 @@ export interface WorkflowTaskFilters {
 }
 
 export interface ProcessTaskRequest {
-  action: 'approve' | 'reject';
+  action: 'approved' | 'rejected';
   notes?: string;
 }
 

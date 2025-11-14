@@ -32,7 +32,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   // View state
   selectedTask: WorkflowTask | null = null;
   showApprovalDialog = false;
-  approvalAction: 'approve' | 'reject' | null = null;
+  approvalAction: 'approved' | 'rejected' | null = null;
   confirmationDialogData: ConfirmationDialogData = {
     title: '',
     message: '',
@@ -160,7 +160,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
     if (!task) return;
 
-    this.approvalAction = 'approve';
+    this.approvalAction = 'approved';
     this.selectedTask = task;
     this.confirmationDialogData = {
       title: 'Approve Task',
@@ -177,7 +177,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
     if (!task) return;
 
-    this.approvalAction = 'reject';
+    this.approvalAction = 'rejected';
     this.selectedTask = task;
     this.confirmationDialogData = {
       title: 'Reject Task',
@@ -193,16 +193,16 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   handleBulkApprove(taskIds: string[]) {
     if (taskIds.length === 0) return;
     
-    this.processBulkTasks(taskIds, 'approve');
+    this.processBulkTasks(taskIds, 'approved');
   }
 
   handleBulkReject(taskIds: string[]) {
     if (taskIds.length === 0) return;
     
-    this.processBulkTasks(taskIds, 'reject');
+    this.processBulkTasks(taskIds, 'rejected');
   }
 
-  private processBulkTasks(taskIds: string[], action: 'approve' | 'reject') {
+  private processBulkTasks(taskIds: string[], action: 'approved' | 'rejected') {
     const tasks = this.allTasks.filter(t => taskIds.includes(t.id));
     if (tasks.length === 0) return;
 
@@ -248,8 +248,8 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private showBulkProcessingResults(successful: number, failed: number, action: 'approve' | 'reject', total: number) {
-    const actionText = action === 'approve' ? 'approved' : 'rejected';
+  private showBulkProcessingResults(successful: number, failed: number, action: 'approved' | 'rejected', total: number) {
+    const actionText = action === 'approved' ? 'approved' : 'rejected';
     
     if (failed === 0) {
       // All successful
@@ -293,7 +293,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     // Don't clear selectedTask here - it should only be cleared when task is actually updated
   }
 
-  private processTask(taskId: string, action: 'approve' | 'reject', notes?: string) {
+  private processTask(taskId: string, action: 'approved' | 'rejected', notes?: string) {
     // Find the task to get the custom_form_response_id
     const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
     if (!task) {
@@ -315,7 +315,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
       next: (response) => {
         if (response.success) {
           // Show success toast
-          const actionText = action === 'approve' ? 'approved' : 'rejected';
+          const actionText = action === 'approved' ? 'approved' : 'rejected';
           this.toastService.success(
             `Task "${task.title}" has been ${actionText} successfully!`,
             `Task ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
