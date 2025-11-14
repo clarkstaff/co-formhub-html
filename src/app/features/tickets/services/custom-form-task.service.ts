@@ -23,13 +23,10 @@ export class CustomFormTaskService {
    * Get all pending custom form tasks assigned to current user
    */
   getMyTasks(): Observable<Ticket[]> {
-    console.log('CustomFormTaskService: Fetching tasks from', this.baseUrl);
     return this.http.get<CustomFormTaskResponse>(this.baseUrl).pipe(
       map(response => {
-        console.log('CustomFormTaskService: Received response', response);
         if (response.success && response.data) {
           const tickets = response.data.map(task => adaptCustomFormTaskToTicket(task));
-          console.log('CustomFormTaskService: Converted to tickets', tickets);
           return tickets;
         }
         return [];

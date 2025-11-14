@@ -1,84 +1,140 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ticket } from '../../models/ticket.interface';
-import { FormDataTableComponent } from '../form-data-table/form-data-table.component';
+import { WorkflowTask } from '../../services/workflow-task.service';
+import { TicketDetailContentComponent } from '../ticket-detail-content/ticket-detail-content.component';
 import { AssigneeDisplayComponent } from '../../../../shared/components/assignee-display/assignee-display.component';
+import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
 @Component({
   selector: 'app-approval-grid-view',
   standalone: true,
-  imports: [CommonModule, FormDataTableComponent, AssigneeDisplayComponent],
+  imports: [CommonModule, TicketDetailContentComponent, AssigneeDisplayComponent],
   template: `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       
       <!-- Approval List (Left Side) -->
       <div class="lg:col-span-1 bg-white rounded-lg shadow overflow-hidden">
+        
+        <!-- Header with Bulk Actions -->
         <div class="p-4 border-b border-gray-200">
-          <h2 class="text-lg font-medium text-gray-800">Pending Approvals</h2>
-          <p class="text-sm text-gray-500">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-medium text-gray-800">Pending Approvals</h2>
+            <input 
+              type="checkbox" 
+              class="form-checkbox"
+              [checked]="isAllSelected"
+              [indeterminate]="isIndeterminate"
+              (change)="toggleAllTasks($event)"
+              title="Select All"
+            >
+          </div>
+          
+          <p class="text-sm text-gray-500 mb-3">
             {{ tickets.length }} {{ tickets.length === 1 ? 'item' : 'items' }} waiting for approval
           </p>
+
+          <!-- Bulk Action Buttons -->
+          <div *ngIf="hasSelectedTasks" class="flex gap-2">
+            <button
+              class="flex-1 btn btn-outline-danger btn-sm text-xs"
+              (click)="onBulkReject()"
+            >
+              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Reject ({{ selectedTasksCount }})
+            </button>
+            <button
+              class="flex-1 btn btn-success btn-sm text-xs"
+              (click)="onBulkApprove()"
+            >
+              <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              Approve ({{ selectedTasksCount }})
+            </button>
+          </div>
         </div>
         
-        <div class="divide-y divide-gray-200 max-h-[calc(100vh-16rem)] overflow-y-auto">
+        <div class="divide-y divide-gray-200 max-h-[calc(100vh-20rem)] overflow-y-auto">
           <div *ngIf="tickets.length === 0" class="p-4 text-center text-gray-500">
             No items waiting for approval
           </div>
           
           <div
-            *ngFor="let ticket of tickets"
-            class="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-            [class.bg-blue-50]="selectedTicket?.id === ticket.id"
-            (click)="onSelectTicket(ticket)"
+            *ngFor="let task of tasks"
+            class="p-4 cursor-pointer hover:bg-gray-50 transition-colors relative"
+            [class.bg-blue-50]="selectedTask?.id === task.id"
+            [class.bg-green-50]="isTaskSelected(task.id)"
+            (click)="onSelectTask(task)"
           >
+            <!-- Checkbox overlay -->
+            <div class="absolute top-2 right-2" (click)="$event.stopPropagation()">
+              <input 
+                type="checkbox" 
+                class="form-checkbox"
+                [checked]="isTaskSelected(task.id)"
+                (change)="toggleTaskSelection(task.id, $event)"
+              >
+            </div>
             <div class="flex justify-between items-start">
               <div>
-                <h3 class="font-medium text-gray-900">{{ ticket.title }}</h3>
+                <h3 class="font-medium text-gray-900">{{ task.title }}</h3>
                 <div class="mt-1">
                   <app-assignee-display 
-                    [assigneeDetails]="ticket.assigneeDetails || []"
+                    [assigneeDetails]="getAssigneeDetails(task)"
                     displayMode="compact"
                     cssClass="text-sm text-gray-500">
                   </app-assignee-display>
                 </div>
-                <p class="text-xs text-blue-600 mt-1" *ngIf="getReferenceId(ticket) !== ticket.id">
-                  Ref: {{ getReferenceId(ticket) }}
+                <p class="text-xs text-blue-600 mt-1" *ngIf="task.reference_id">
+                  Ref: {{ task.reference_id }}
                 </p>
               </div>
-              <span [class]="getTypeBadgeClass(ticket.type)" class="px-2.5 py-0.5 rounded-full text-xs font-medium">
-                {{ ticket.type | titlecase }}
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 me-5">
+                {{ task.form_name }}
               </span>
             </div>
-            <p class="text-sm text-gray-600 mt-2 line-clamp-2">{{ getFormDataSummary(ticket) }}</p>
-            <p class="text-xs text-gray-500 mt-2">
-              Due: {{ formatDate(ticket.dueDate || ticket.createdAt) }}
-            </p>
+            <p class="text-sm text-gray-600 mt-2 line-clamp-2">{{ getFormDataSummary(task) }}</p>
+            <div class="text-xs text-gray-500 mt-2 space-y-1">
+              <p><strong>Requestor:</strong> {{ task.requestor || 'Unknown' }}</p>
+              <p><strong>Created At:</strong> {{ formatDate(task.created_at) }}</p>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Task Details (Right Side) -->
       <div class="lg:col-span-2 bg-white rounded-lg shadow">
-        <div *ngIf="selectedTicket; else noSelection" class="p-6">
+        <div *ngIf="selectedTask; else noSelection">
           
           <!-- Header with Actions -->
-          <div class="flex justify-between items-start">
-            <h2 class="text-xl font-semibold text-gray-800">{{ selectedTicket.title }}</h2>
-            <div class="flex space-x-2">
+          <div class="flex flex-wrap items-center justify-between p-4 border-b border-gray-200">
+            <div class="flex items-center">
+              <h4 class="text-lg font-medium text-gray-900 mr-2">{{ selectedTask.title }}</h4>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" *ngIf="selectedTask.reference_id">
+                {{ selectedTask.reference_id }}
+              </span>
+            </div>
+            
+            <div class="flex gap-2">
               <button
-                class="bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md flex items-center text-sm"
-                (click)="onReject(selectedTicket.id)"
+                class="btn btn-outline-danger btn-sm"
+                (click)="onReject(selectedTask.id)"
+                title="Reject Task"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 ltr:mr-2 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
                 Reject
               </button>
               <button
-                class="bg-green-100 hover:bg-green-200 text-green-700 py-2 px-4 rounded-md flex items-center text-sm"
-                (click)="onApprove(selectedTicket.id)"
+                class="btn btn-success btn-sm"
+                (click)="onApprove(selectedTask.id)"
+                title="Approve Task"
               >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 ltr:mr-2 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
                 Approve
@@ -86,68 +142,16 @@ import { AssigneeDisplayComponent } from '../../../../shared/components/assignee
             </div>
           </div>
 
-          <!-- Badges -->
-          <div class="flex flex-wrap gap-2 mt-4">
-            <span [class]="getTypeBadgeClass(selectedTicket.type)" class="px-2.5 py-1 rounded-full text-xs font-medium">
-              {{ selectedTicket.type | titlecase }}
-            </span>
-            <span [class]="getPriorityBadgeClass(selectedTicket.priority)" class="px-2.5 py-1 rounded-full text-xs font-medium">
-              {{ selectedTicket.priority | titlecase }} priority
-            </span>
+          <!-- Task Details Content -->
+          <div class="p-6">
+            <!-- Use shared ticket detail content component without actions -->
+            <app-ticket-detail-content 
+              [ticket]="getTicketCompatibleTask(selectedTask)"
+              [showActions]="false"
+              [assigneeDisplayMode]="'detailed'">
+            </app-ticket-detail-content>
           </div>
 
-          <!-- Details Grid -->
-          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 class="text-sm font-medium text-gray-500">Description</h3>
-              <p class="mt-1 text-gray-900">{{ selectedTicket.description }}</p>
-              
-              <!-- Custom Form Data Section -->
-              <div *ngIf="selectedTicket.customFormData" class="mt-4">
-                <h3 class="text-sm font-medium text-gray-500 mb-2">Form Details</h3>
-                <div class="bg-gray-50 p-3 rounded text-sm">
-                  <p><strong>Reference:</strong> {{ selectedTicket.customFormData.referenceId }}</p>
-                  <p class="mt-1">{{ getFormDataSummary(selectedTicket) }}</p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 class="text-sm font-medium text-gray-500">Details</h3>
-              <div class="mt-1 space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-sm text-gray-600">Assigned to:</span>
-                  <app-assignee-display 
-                    [assigneeDetails]="selectedTicket.assigneeDetails || []"
-                    displayMode="detailed"
-                    cssClass="text-sm">
-                  </app-assignee-display>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Due Date:</span>
-                  <span class="text-sm font-medium">{{ formatDate(selectedTicket.dueDate || selectedTicket.createdAt) }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Created:</span>
-                  <span class="text-sm font-medium">{{ formatDate(selectedTicket.createdAt) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Form Data Tables -->
-          <app-form-data-table [ticket]="selectedTicket"></app-form-data-table>
-
-          <!-- Additional Data -->
-          <div class="mt-6" *ngIf="selectedTicket.tags && selectedTicket.tags.length > 0">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">Tags</h3>
-            <div class="bg-gray-50 p-4 rounded-md">
-              <div class="flex flex-wrap gap-2">
-                <span *ngFor="let tag of selectedTicket.tags" class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                  {{ tag }}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- No Selection State -->
@@ -168,57 +172,172 @@ import { AssigneeDisplayComponent } from '../../../../shared/components/assignee
   `
 })
 export class ApprovalGridViewComponent {
-  @Input() tickets: Ticket[] = [];
-  @Input() selectedTicket: Ticket | null = null;
+  @Input() tasks: WorkflowTask[] = [];
+  @Input() selectedTask: WorkflowTask | null = null;
   
-  @Output() selectTicket = new EventEmitter<Ticket>();
+  @Output() selectTask = new EventEmitter<WorkflowTask>();
   @Output() approve = new EventEmitter<string>();
   @Output() reject = new EventEmitter<string>();
+  @Output() bulkApprove = new EventEmitter<string[]>();
+  @Output() bulkReject = new EventEmitter<string[]>();
 
-  onSelectTicket(ticket: Ticket): void {
-    this.selectTicket.emit(ticket);
+  // Bulk selection state
+  selectedTaskIds: Set<string> = new Set();
+
+  get hasSelectedTasks(): boolean {
+    return this.selectedTaskIds.size > 0;
   }
 
-  onApprove(ticketId: string): void {
-    this.approve.emit(ticketId);
+  get selectedTasksCount(): number {
+    return this.selectedTaskIds.size;
   }
 
-  onReject(ticketId: string): void {
-    this.reject.emit(ticketId);
+  get isAllSelected(): boolean {
+    return this.tasks.length > 0 && this.selectedTaskIds.size === this.tasks.length;
+  }
+
+  get isIndeterminate(): boolean {
+    return this.selectedTaskIds.size > 0 && this.selectedTaskIds.size < this.tasks.length;
+  }
+
+  // Backward compatibility with ticket interface
+  @Input() 
+  set tickets(value: WorkflowTask[] | Ticket[]) {
+    this.tasks = value as WorkflowTask[];
+  }
+  get tickets(): WorkflowTask[] {
+    return this.tasks;
+  }
+
+  @Input() 
+  set selectedTicket(value: WorkflowTask | Ticket | null) {
+    this.selectedTask = value as WorkflowTask;
+  }
+  get selectedTicket(): WorkflowTask | null {
+    return this.selectedTask;
+  }
+
+  @Output() selectTicket = new EventEmitter<WorkflowTask>();
+
+  onSelectTask(task: WorkflowTask): void {
+    this.selectTask.emit(task);
+    this.selectTicket.emit(task);  // Backward compatibility
+  }
+
+  // Backward compatibility methods
+  onSelectTicket(task: WorkflowTask): void {
+    this.onSelectTask(task);
+  }
+
+  onApprove(taskId: string): void {
+    this.approve.emit(taskId);
+  }
+
+  onReject(taskId: string): void {
+    this.reject.emit(taskId);
+  }
+
+  // Bulk selection methods
+  toggleTaskSelection(taskId: string, event: Event): void {
+    event.stopPropagation();
+    if (this.selectedTaskIds.has(taskId)) {
+      this.selectedTaskIds.delete(taskId);
+    } else {
+      this.selectedTaskIds.add(taskId);
+    }
+  }
+
+  toggleAllTasks(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    if (target.checked) {
+      this.tasks.forEach(task => this.selectedTaskIds.add(task.id));
+    } else {
+      this.selectedTaskIds.clear();
+    }
+  }
+
+  isTaskSelected(taskId: string): boolean {
+    return this.selectedTaskIds.has(taskId);
+  }
+
+  onBulkApprove(): void {
+    if (this.selectedTaskIds.size > 0) {
+      this.bulkApprove.emit(Array.from(this.selectedTaskIds));
+      this.selectedTaskIds.clear();
+    }
+  }
+
+  onBulkReject(): void {
+    if (this.selectedTaskIds.size > 0) {
+      this.bulkReject.emit(Array.from(this.selectedTaskIds));
+      this.selectedTaskIds.clear();
+    }
   }
 
   formatDate(date: string | Date): string {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString();
+    return TicketDisplayUtil.formatDate(date);
   }
 
   // Helper method to display form data
-  getFormDataSummary(ticket: Ticket): string {
-    if (!ticket.customFormData?.formData) return ticket.description;
-    
-    const formData = ticket.customFormData.formData;
-    
-    // Handle specific form types based on the data structure
-    if (formData.totalPettyCash && formData.pettyCashHolder) {
-      return `Petty Cash: ${formData.totalPettyCash} - Holder: ${formData.pettyCashHolder}`;
-    }
-    
-    // Generic fallback - show key fields
-    const keys = Object.keys(formData).slice(0, 2);
-    const summary = keys.map(key => {
-      const value = formData[key];
-      if (Array.isArray(value)) {
-        return `${key}: ${value.length} items`;
-      }
-      return `${key}: ${value}`;
-    }).join(', ');
-    
-    return summary || ticket.description;
+  getFormDataSummary(task: WorkflowTask): string {
+    // Convert WorkflowTask to Ticket-like interface for compatibility
+    const ticketLike = {
+      ...task,
+      createdAt: new Date(task.created_at),
+      updatedAt: new Date(task.updated_at),
+      reporterId: task.requestor,
+      reporterName: task.requestor
+    } as unknown as Ticket;
+    return TicketDisplayUtil.getAdaptiveFormDataSummary(ticketLike);
   }
 
-  // Get reference ID for display
-  getReferenceId(ticket: Ticket): string {
-    return ticket.customFormData?.referenceId || ticket.id;
+  // Convert WorkflowTask to Ticket for ticket-detail-content component
+  getTicketCompatibleTask(task: WorkflowTask): Ticket {
+    const assigneeDetails = this.getAssigneeDetails(task);
+    const primaryAssignee = assigneeDetails.length > 0 ? assigneeDetails[0] : null;
+    
+    return {
+      ...task,
+      createdAt: new Date(task.created_at),
+      updatedAt: new Date(task.updated_at),
+      reporterId: task.requestor,
+      reporterName: task.requestor,
+      // Set primary assignee properties for simple display
+      assigneeId: primaryAssignee?.assignee_id?.toString(),
+      assigneeName: primaryAssignee ? primaryAssignee.assignee_name : 'Unassigned',
+      // Set multiple assignees for complex display
+      assigneeIds: assigneeDetails.map(a => a.assignee_id.toString()),
+      assigneeNames: assigneeDetails.map(a => a.assignee_name),
+      assigneeDetails: assigneeDetails,
+      customFormData: {
+        formData: task.form_data, // Direct from API
+        formType: task.form_type,
+        referenceId: task.reference_id
+      }
+    } as unknown as Ticket;
+  }
+
+  // Convert WorkflowTask assignees to TicketAssignee format
+  getAssigneeDetails(task: WorkflowTask): any[] {
+    return (task.assignees || []).map(assignee => ({
+      id: assignee.id,
+      assignee_id: assignee.id,
+      assignee_name: assignee.name || 'Unknown Assignee',
+      assignee_type: this.mapAssigneeTypeForDisplay(assignee.type),
+      assignee_details: assignee
+    }));
+  }
+
+  // Map assignee type for display in the component
+  private mapAssigneeTypeForDisplay(type: string): string {
+    switch (type) {
+      case 'user':
+        return 'user';
+      case 'group':
+        return 'group';
+      default:
+        return 'user';
+    }
   }
 
   getTypeBadgeClass(type: string): string {
@@ -227,16 +346,6 @@ export class ApprovalGridViewComponent {
       case 'feature': return 'bg-blue-100 text-blue-800';
       case 'task': return 'bg-green-100 text-green-800';
       case 'improvement': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  }
-
-  getPriorityBadgeClass(priority: string): string {
-    switch (priority) {
-      case 'critical': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   }

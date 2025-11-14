@@ -188,12 +188,20 @@ export class AssigneeDisplayComponent {
   trackByAssigneeId = (index: number, assignee: TicketAssignee): number => assignee.id;
 
   getAssigneeTypeLabel(assigneeType: string): string {
+    console.log('Assignee Type:', assigneeType);
     const typeMap: { [key: string]: string } = {
+      // Full Laravel model class names
       'App\\Models\\User': 'User',
       'App\\Models\\Employee': 'Employee', 
-      'App\\Models\\Group': 'Group',
+      'App\\Models\\Group': 'Department',
       'App\\Models\\Role': 'Role',
-      'App\\Models\\Division': 'Division'
+      'App\\Models\\Division': 'Service Level',
+      // Simple string types from API
+      'user': 'User',
+      'employee': 'Employee',
+      'group': 'Department',
+      'role': 'Role',
+      'division': 'Service Level'
     };
     
     return typeMap[assigneeType] || 'Unknown';
@@ -201,11 +209,18 @@ export class AssigneeDisplayComponent {
 
   getAssigneeTypeBadgeClass(assigneeType: string): string {
     const classMap: { [key: string]: string } = {
+      // Full Laravel model class names
       'App\\Models\\User': 'badge-user',
       'App\\Models\\Employee': 'badge-employee',
       'App\\Models\\Group': 'badge-group', 
       'App\\Models\\Role': 'badge-role',
-      'App\\Models\\Division': 'badge-division'
+      'App\\Models\\Division': 'badge-division',
+      // Simple string types from API
+      'user': 'badge-user',
+      'employee': 'badge-employee',
+      'group': 'badge-group',
+      'role': 'badge-role',
+      'division': 'badge-division'
     };
     
     return classMap[assigneeType] || 'badge-outline';
@@ -213,11 +228,18 @@ export class AssigneeDisplayComponent {
 
   getAssigneeTypeClass(assigneeType: string): string {
     const classMap: { [key: string]: string } = {
+      // Full Laravel model class names
       'App\\Models\\User': 'avatar-user',
       'App\\Models\\Employee': 'avatar-employee',
       'App\\Models\\Group': 'avatar-group',
       'App\\Models\\Role': 'avatar-role', 
-      'App\\Models\\Division': 'avatar-division'
+      'App\\Models\\Division': 'avatar-division',
+      // Simple string types from API
+      'user': 'avatar-user',
+      'employee': 'avatar-employee',
+      'group': 'avatar-group',
+      'role': 'avatar-role',
+      'division': 'avatar-division'
     };
     
     return classMap[assigneeType] || 'avatar-user';
@@ -225,11 +247,18 @@ export class AssigneeDisplayComponent {
 
   getAssigneeIconClass(assigneeType: string): string {
     const classMap: { [key: string]: string } = {
+      // Full Laravel model class names
       'App\\Models\\User': 'icon-user',
       'App\\Models\\Employee': 'icon-employee', 
       'App\\Models\\Group': 'icon-group',
       'App\\Models\\Role': 'icon-role',
-      'App\\Models\\Division': 'icon-division'
+      'App\\Models\\Division': 'icon-division',
+      // Simple string types from API
+      'user': 'icon-user',
+      'employee': 'icon-employee',
+      'group': 'icon-group',
+      'role': 'icon-role',
+      'division': 'icon-division'
     };
     
     return classMap[assigneeType] || 'icon-user';

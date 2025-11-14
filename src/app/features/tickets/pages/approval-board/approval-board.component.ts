@@ -11,7 +11,8 @@ import {
   TicketType,
   UpdateTicketRequest
 } from '../../models/ticket.interface';
-import { TicketService } from '../../services/ticket.service';
+import { WorkflowTask, WorkflowTaskService, ProcessTaskRequest } from '../../services/workflow-task.service';
+import { ToastService } from 'src/app/shared/toast/services/toast.service';
 import { IconModule } from 'src/app/shared/icon/icon.module';
 import { ApprovalListViewComponent } from '../../components/approval-list-view/approval-list-view.component';
 import { ApprovalGridViewComponent } from '../../components/approval-grid-view/approval-grid-view.component';
@@ -29,7 +30,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   // View state
-  selectedTicket: Ticket | null = null;
+  selectedTask: WorkflowTask | null = null;
   showApprovalDialog = false;
   approvalAction: 'approve' | 'reject' | null = null;
   confirmationDialogData: ConfirmationDialogData = {
@@ -44,26 +45,28 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   searchText = '';
 
   // Data
-  pendingTickets: Ticket[] = [];
-  allTickets: Ticket[] = [];
-  filteredTickets: Ticket[] = [];
+  pendingTasks: WorkflowTask[] = [];
+  allTasks: WorkflowTask[] = [];
+  filteredTasks: WorkflowTask[] = [];
   processTypes: string[] = [];
   
   // Loading states
   loading = false;
   error: string | null = null;
+  processing = false;
 
-  // Enum references for template
+  // Enum references for template (keeping for backward compatibility)
   TicketStatus = TicketStatus;
   TicketPriority = TicketPriority;
   TicketType = TicketType;
 
   constructor(
-    private ticketService: TicketService
+    private workflowTaskService: WorkflowTaskService,
+    private toastService: ToastService
   ) {}
 
   ngOnInit() {
-    this.loadPendingTickets();
+    this.loadPendingTasks();
   }
 
   ngOnDestroy() {
@@ -71,38 +74,44 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadPendingTickets() {
+  private loadPendingTasks() {
     this.loading = true;
     this.error = null;
 
-    // Load tickets that are in review/pending status for approval
-    this.ticketService.getTickets({ 
-      status: [TicketStatus.PENDING] 
+    // Load tasks that are in approval stage
+    this.workflowTaskService.getTasks({ 
+      stage_type: 'approval'  // Only get approval stage tasks
     }).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (tickets: Ticket[]) => {
-        this.pendingTickets = tickets;
-        this.allTickets = tickets;
-        this.filteredTickets = tickets;
-        this.extractProcessTypes(tickets);
+      next: (response) => {
+        const tasks = response.data || [];
+        this.pendingTasks = tasks;
+        this.allTasks = tasks;
+        this.filteredTasks = tasks;
+        this.extractProcessTypes(tasks);
         this.loading = false;
       },
       error: (error: any) => {
-        this.error = 'Failed to load pending tickets';
+        this.error = 'Failed to load pending tasks';
         this.loading = false;
-        console.error('Error loading tickets:', error);
+        console.error('Error loading tasks:', error);
       }
     });
   }
 
-  private extractProcessTypes(tickets: Ticket[]) {
-    const types = ['all', ...new Set(tickets.map(ticket => ticket.type))];
+  private extractProcessTypes(tasks: WorkflowTask[]) {
+    const types = ['all', ...new Set(tasks.map(task => task.form_type || task.type))];
     this.processTypes = types;
   }
 
-  selectTicket(ticket: Ticket) {
-    this.selectedTicket = ticket;
+  selectTask(task: WorkflowTask) {
+    this.selectedTask = task;
+  }
+
+  // Backward compatibility method
+  selectTicket(ticket: any) {
+    this.selectTask(ticket);
   }
 
   onProcessTypeFilterChange() {
@@ -114,30 +123,32 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   }
 
   private applyFilters() {
-    let filtered = this.pendingTickets;
+    let filtered = this.pendingTasks;
 
     // Filter by process type
     if (this.processTypeFilter !== 'all') {
-      filtered = filtered.filter(ticket => ticket.type === this.processTypeFilter);
+      filtered = filtered.filter((task: WorkflowTask) => 
+        task.form_type === this.processTypeFilter || task.type === this.processTypeFilter
+      );
     }
 
     // Filter by search text
     if (this.searchText.trim()) {
       const searchLower = this.searchText.toLowerCase().trim();
-      filtered = filtered.filter(ticket => 
-        ticket.title.toLowerCase().includes(searchLower) ||
-        ticket.description.toLowerCase().includes(searchLower) ||
-        ticket.reporterName.toLowerCase().includes(searchLower) ||
-        (ticket.assigneeName && ticket.assigneeName.toLowerCase().includes(searchLower))
+      filtered = filtered.filter((task: WorkflowTask) => 
+        task.title.toLowerCase().includes(searchLower) ||
+        task.description.toLowerCase().includes(searchLower) ||
+        task.requestor.toLowerCase().includes(searchLower) ||
+        (task.assignees && task.assignees.some(a => a.name.toLowerCase().includes(searchLower)))
       );
     }
 
-    this.filteredTickets = filtered;
-    this.allTickets = filtered;
+    this.filteredTasks = filtered;
+    this.allTasks = filtered;
 
-    // Clear selection if filtered ticket is no longer visible
-    if (this.selectedTicket && !this.filteredTickets.includes(this.selectedTicket)) {
-      this.selectedTicket = null;
+    // Clear selection if filtered task is no longer visible
+    if (this.selectedTask && !this.filteredTasks.includes(this.selectedTask)) {
+      this.selectedTask = null;
     }
   }
 
@@ -145,46 +156,133 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     this.displayType = type;
   }
 
-  handleApprove(ticketId: string) {
-    const ticket = this.allTickets.find(t => t.id === ticketId);
-    if (!ticket) return;
+  handleApprove(taskId: string) {
+    const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
+    if (!task) return;
 
     this.approvalAction = 'approve';
-    this.selectedTicket = ticket;
+    this.selectedTask = task;
     this.confirmationDialogData = {
-      title: 'Approve Ticket',
-      message: 'Are you sure you want to approve this ticket? It will be marked as resolved.',
+      title: 'Approve Task',
+      message: 'Are you sure you want to approve this task? It will proceed to the next stage.',
       confirmText: 'Approve',
       cancelText: 'Cancel',
       type: 'approve',
-      ticketTitle: ticket.title
+      ticketTitle: task.title
     };
     this.showApprovalDialog = true;
   }
 
-  handleReject(ticketId: string) {
-    const ticket = this.allTickets.find(t => t.id === ticketId);
-    if (!ticket) return;
+  handleReject(taskId: string) {
+    const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
+    if (!task) return;
 
     this.approvalAction = 'reject';
-    this.selectedTicket = ticket;
+    this.selectedTask = task;
     this.confirmationDialogData = {
-      title: 'Reject Ticket',
-      message: 'Are you sure you want to reject this ticket? It will be closed.',
+      title: 'Reject Task',
+      message: 'Are you sure you want to reject this task? Please provide a reason.',
       confirmText: 'Reject',
       cancelText: 'Cancel',
       type: 'reject',
-      ticketTitle: ticket.title
+      ticketTitle: task.title
     };
     this.showApprovalDialog = true;
   }
 
-  onConfirmationResult(result: ConfirmationResult) {
-    if (result.confirmed && this.selectedTicket && this.approvalAction) {
-      const newStatus = this.approvalAction === 'approve' ? TicketStatus.RESOLVED : TicketStatus.CLOSED;
-      this.updateTicketStatus(this.selectedTicket.id, newStatus);
+  handleBulkApprove(taskIds: string[]) {
+    if (taskIds.length === 0) return;
+    
+    this.processBulkTasks(taskIds, 'approve');
+  }
+
+  handleBulkReject(taskIds: string[]) {
+    if (taskIds.length === 0) return;
+    
+    this.processBulkTasks(taskIds, 'reject');
+  }
+
+  private processBulkTasks(taskIds: string[], action: 'approve' | 'reject') {
+    const tasks = this.allTasks.filter(t => taskIds.includes(t.id));
+    if (tasks.length === 0) return;
+
+    this.processing = true;
+    let completed = 0;
+    let failed = 0;
+
+    tasks.forEach(task => {
+      const processRequest: ProcessTaskRequest = {
+        action: action,
+        notes: `Bulk ${action}`
+      };
+
+      this.workflowTaskService.processTask(task.custom_form_response_id.toString(), processRequest).subscribe({
+        next: (response) => {
+          completed++;
+          if (response.success) {
+            // Remove successful task from lists
+            this.allTasks = this.allTasks.filter(t => t.id !== task.id);
+            this.pendingTasks = this.pendingTasks.filter(t => t.id !== task.id);
+            this.filteredTasks = this.filteredTasks.filter(t => t.id !== task.id);
+          } else {
+            failed++;
+          }
+
+          // Check if this was the last task
+          if (completed + failed === tasks.length) {
+            this.processing = false;
+            this.showBulkProcessingResults(completed, failed, action, tasks.length);
+          }
+        },
+        error: (error) => {
+          failed++;
+          console.error('Error processing bulk task:', error);
+          
+          // Check if this was the last task
+          if (completed + failed === tasks.length) {
+            this.processing = false;
+            this.showBulkProcessingResults(completed - failed, failed, action, tasks.length);
+          }
+        }
+      });
+    });
+  }
+
+  private showBulkProcessingResults(successful: number, failed: number, action: 'approve' | 'reject', total: number) {
+    const actionText = action === 'approve' ? 'approved' : 'rejected';
+    
+    if (failed === 0) {
+      // All successful
+      this.toastService.success(
+        `All ${total} task(s) have been ${actionText} successfully!`,
+        `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)} Completed`,
+        5000
+      );
+    } else if (successful === 0) {
+      // All failed
+      this.toastService.error(
+        `Failed to ${action} ${total} task(s)`,
+        `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)} Failed`
+      );
     } else {
-      // User cancelled - just close dialog but keep selectedTicket
+      // Mixed results
+      this.toastService.warning(
+        `${successful} task(s) ${actionText}, ${failed} failed`,
+        `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)} Partial Success`
+      );
+    }
+
+    // Clear selection if it was processed
+    if (this.selectedTask && !this.allTasks.find(t => t.id === this.selectedTask!.id)) {
+      this.selectedTask = null;
+    }
+  }
+
+  onConfirmationResult(result: ConfirmationResult) {
+    if (result.confirmed && this.selectedTask && this.approvalAction) {
+      this.processTask(this.selectedTask.id, this.approvalAction, result.notes);
+    } else {
+      // User cancelled - just close dialog but keep selectedTask
       this.closeApprovalDialog();
     }
   }
@@ -192,39 +290,69 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   closeApprovalDialog() {
     this.showApprovalDialog = false;
     this.approvalAction = null;
-    // Don't clear selectedTicket here - it should only be cleared when ticket is actually updated
+    // Don't clear selectedTask here - it should only be cleared when task is actually updated
   }
 
-  private updateTicketStatus(ticketId: string, newStatus: TicketStatus, comment?: string) {
-    const updateRequest: UpdateTicketRequest = {
-      id: ticketId,
-      status: newStatus,
-      ...(comment && { description: comment }) // Add comment if provided
+  private processTask(taskId: string, action: 'approve' | 'reject', notes?: string) {
+    // Find the task to get the custom_form_response_id
+    const task = this.allTasks.find((t: WorkflowTask) => t.id === taskId);
+    if (!task) {
+      this.error = 'Task not found';
+      this.closeApprovalDialog();
+      return;
+    }
+
+    const processRequest: ProcessTaskRequest = {
+      action: action,
+      ...(notes && { notes: notes })
     };
 
-    this.loading = true;
-    this.ticketService.updateTicket(updateRequest).pipe(
+    this.processing = true;
+    // Use custom_form_response_id instead of task id
+    this.workflowTaskService.processTask(task.custom_form_response_id.toString(), processRequest).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: () => {
-        // Remove the ticket from the list since it's no longer pending
-        this.allTickets = this.allTickets.filter(t => t.id !== ticketId);
-        this.pendingTickets = this.pendingTickets.filter(t => t.id !== ticketId);
-        
-        // Clear selection if it was the updated ticket
-        if (this.selectedTicket && this.selectedTicket.id === ticketId) {
-          this.selectedTicket = null;
+      next: (response) => {
+        if (response.success) {
+          // Show success toast
+          const actionText = action === 'approve' ? 'approved' : 'rejected';
+          this.toastService.success(
+            `Task "${task.title}" has been ${actionText} successfully!`,
+            `Task ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`,
+            4000
+          );
+          
+          // Remove the task from the list since it's no longer pending approval
+          this.allTasks = this.allTasks.filter((t: WorkflowTask) => t.id !== taskId);
+          this.pendingTasks = this.pendingTasks.filter((t: WorkflowTask) => t.id !== taskId);
+          this.filteredTasks = this.filteredTasks.filter((t: WorkflowTask) => t.id !== taskId);
+          
+          // Clear selection if it was the updated task
+          if (this.selectedTask && this.selectedTask.id === taskId) {
+            this.selectedTask = null;
+          }
+          
+          // Close the approval dialog after successful update
+          this.closeApprovalDialog();
+          this.processing = false;
+        } else {
+          this.error = response.message || 'Failed to process task';
+          this.toastService.error(
+            response.message || 'Failed to process task',
+            'Processing Failed'
+          );
+          this.processing = false;
+          this.closeApprovalDialog();
         }
-        
-        // Close the approval dialog after successful update
-        this.closeApprovalDialog();
-        
-        this.loading = false;
       },
       error: (error: any) => {
-        this.error = `Failed to update ticket status`;
-        this.loading = false;
-        console.error('Error updating ticket:', error);
+        this.error = 'Failed to process task';
+        this.toastService.error(
+          'An unexpected error occurred while processing the task',
+          'Processing Failed'
+        );
+        this.processing = false;
+        console.error('Error processing task:', error);
         
         // Close dialog even on error
         this.closeApprovalDialog();

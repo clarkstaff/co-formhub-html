@@ -5,6 +5,10 @@ import { Router, NavigationEnd } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
 import { AppService } from '../service/app.service';
+import { AuthActions } from 'src/app/core/store/auth/auth.actions';
+import { selectCurrentUser } from 'src/app/core/store/auth/auth.selectors';
+import { Observable } from 'rxjs';
+import { UserModel } from 'src/app/core/services/auth.service';
 
 @Component({
     selector: 'header',
@@ -14,6 +18,7 @@ import { AppService } from '../service/app.service';
 export class HeaderComponent {
     store: any;
     search = false;
+    currentUser$: Observable<UserModel | null>;
     notifications = [
         {
             id: 1,
@@ -81,6 +86,7 @@ export class HeaderComponent {
         private sanitizer: DomSanitizer,
     ) {
         this.initStore();
+        this.currentUser$ = this.storeData.select(selectCurrentUser);
     }
     async initStore() {
         this.storeData
@@ -137,5 +143,37 @@ export class HeaderComponent {
             this.storeData.dispatch({ type: 'toggleRTL', payload: 'ltr' });
         }
         window.location.reload();
+    }
+
+    logout() {
+        this.storeData.dispatch(AuthActions.logout({ redirectUrl: '/auth/boxed-signin' }));
+    }
+
+    getUserDisplayName(user: UserModel | null): string {
+        if (!user) return 'Guest User';
+        
+        if (user.full_name) return user.full_name;
+        if (user.name) return user.name;
+        if (user.first_name && user.last_name) {
+            return `${user.first_name} ${user.last_name}`;
+        }
+        if (user.first_name) return user.first_name;
+        if (user.email) return user.email;
+        
+        return 'User';
+    }
+
+    getUserProfileImage(user: UserModel | null): string {
+        if (!user) {
+            return '/assets/images/user-profile.jpeg';
+        }
+        
+        // Use profile_picture field from API response
+        if (user.profile_picture && user.profile_picture.trim() !== '') {
+            return user.profile_picture;
+        }
+        
+        // Return default image if no profile image is found
+        return '/assets/images/user-profile.jpeg';
     }
 }

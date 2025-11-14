@@ -9,6 +9,13 @@ import { Subscription, Observable, BehaviorSubject } from 'rxjs';
 import { first } from 'rxjs/operators';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { ToastService } from 'src/app/shared/toast/services/toast.service';
+import { AuthActions } from 'src/app/core/store/auth/auth.actions';
+import { 
+  selectIsLoggingIn, 
+  selectLoginError, 
+  selectIsAuthenticated,
+  selectCurrentUser 
+} from 'src/app/core/store/auth/auth.selectors';
 // Note: For Google auth, you'll need to install @abacritt/angularx-social-login
 // import { SocialAuthService, GoogleLoginProvider } from "@abacritt/angularx-social-login";
 
@@ -21,15 +28,11 @@ export class BoxedSigninComponent implements OnInit, OnDestroy {
     loginForm!: FormGroup;
     returnUrl: string = '';
     
-    // Loading and error states
-    hasError: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    hasError$: Observable<boolean>;
-    responseMessage: BehaviorSubject<string> = new BehaviorSubject<string>('');
-    responseMessage$: Observable<string>;
-    isLoading: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-    isLoading$: Observable<boolean>;
-    isClickable: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(true);
-    isClickable$: Observable<boolean>;
+    // Store observables
+    isLoggingIn$: Observable<boolean>;
+    loginError$: Observable<string | null>;
+    isAuthenticated$: Observable<boolean>;
+    currentUser$: Observable<any>;
     
     // UI state
     viewPassword: boolean = false;
@@ -49,10 +52,12 @@ export class BoxedSigninComponent implements OnInit, OnDestroy {
         // private socialAuthService: SocialAuthService, // For Google auth
     ) {
         this.initStore();
-        this.hasError$ = this.hasError.asObservable();
-        this.responseMessage$ = this.responseMessage.asObservable();
-        this.isLoading$ = this.isLoading.asObservable();
-        this.isClickable$ = this.isClickable.asObservable();
+        
+        // Initialize store observables
+        this.isLoggingIn$ = this.storeData.select(selectIsLoggingIn);
+        this.loginError$ = this.storeData.select(selectLoginError);
+        this.isAuthenticated$ = this.storeData.select(selectIsAuthenticated);
+        this.currentUser$ = this.storeData.select(selectCurrentUser);
     }
 
     ngOnInit(): void {
@@ -124,61 +129,38 @@ export class BoxedSigninComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.isLoading.next(true);
-        this.isClickable.next(false);
-        this.hasError.next(false);
-        this.responseMessage.next('');
-
         const { email, password } = this.loginForm.value;
+        
+        // Ensure we have a proper redirect URL - avoid redirecting back to login page
+        let redirectUrl = this.returnUrl;
+        
+        // If returnUrl is empty, login page, or auth-related, default to root
+        if (!redirectUrl || 
+            redirectUrl === '' || 
+            redirectUrl === '/auth/boxed-signin' || 
+            redirectUrl.includes('/auth/') ||
+            redirectUrl === '/login') {
+            redirectUrl = '/';
+        }
+        
+        // Set redirect URL in store
+        this.storeData.dispatch(AuthActions.setRedirectUrl({ redirectUrl }));
 
-        const loginSubscr = this.authService
-            .login(email, password, this.returnUrl)
-            .pipe(first())
-            .subscribe({
-                next: (response: any) => {
-                    this.isLoading.next(false);
-                    this.isClickable.next(true);
-                    
-                    if (response?.result === '403' || response?.result === '404') {
-                        this.hasError.next(true);
-                        this.responseMessage.next(response.message);
-                        this.authService.showErrorMessage(response.message);
-                    } else if (response?.access_token) {
-                        // Handle successful login - AuthService already handles navigation and success message
-                        if (response?.user?.modules && response.user.modules.length > 0) {
-                            localStorage.setItem('recentModuleIDs', JSON.stringify(response.user.modules));
-                            localStorage.setItem('is_static', response.user.is_static.toString());
-                        }
-                    }
-                },
-                error: (error) => {
-                    this.isLoading.next(false);
-                    this.isClickable.next(true);
-                    this.hasError.next(true);
-                    
-                    let errorMessage = 'Cannot process your request';
-                    if (error?.message) {
-                        errorMessage = error.message;
-                    } else if (error?.error?.message) {
-                        errorMessage = error.error.message;
-                    }
-                    
-                    this.responseMessage.next(errorMessage);
-                    this.authService.showErrorMessage('Login failed. Please try again.');
-                }
-            });
-        this.unsubscribe.push(loginSubscr);
+        // Dispatch login action - the effects will handle the API call and navigation
+        this.storeData.dispatch(AuthActions.login({ 
+            email, 
+            password, 
+            redirectUrl 
+        }));
     }
 
     // Google Sign-In handler
     handleGoogleSignIn() {
-        // TODO: Implement Google sign-in
-        this.isLoading.next(true);
+        // TODO: Implement Google sign-in with NgRx store
         this.authService.showInfoMessage('Google sign-in will be available soon');
-        this.isLoading.next(false);
         /*
-        this.isLoading.next(true);
-        this.socialAuthService.signIn(GoogleLoginProvider.PROVIDER_ID);
+        // When Google auth is implemented, use this:
+        // this.storeData.dispatch(AuthActions.googleAuth({ authModel: googleUser, redirectUrl: this.returnUrl }));
         */
     }
 
@@ -192,11 +174,24 @@ export class BoxedSigninComponent implements OnInit, OnDestroy {
 
     // Check if user is already authenticated
     private checkExistingAuth() {
-        this.authService.getUserByToken().subscribe(user => {
-            if (user) {
-                this.router.navigate([this.returnUrl]);
+        // Subscribe to auth state changes
+        const authSub = this.isAuthenticated$.subscribe(isAuthenticated => {
+            if (isAuthenticated) {
+                // If user is already authenticated and trying to access login page,
+                // redirect to root instead of the returnUrl (which might be the login page itself)
+                const redirectUrl = this.returnUrl && 
+                                  this.returnUrl !== '/auth/boxed-signin' && 
+                                  !this.returnUrl.includes('/auth/') && 
+                                  this.returnUrl !== '/login' && 
+                                  this.returnUrl !== '' 
+                    ? this.returnUrl 
+                    : '/';
+                    
+                console.log('User already authenticated, redirecting to:', redirectUrl);
+                this.router.navigate([redirectUrl]);
             }
         });
+        this.unsubscribe.push(authSub);
     }
 
     // Setup Google authentication listener

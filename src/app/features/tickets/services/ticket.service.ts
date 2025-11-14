@@ -34,7 +34,6 @@ export class TicketService {
       return this.mockService.getMockTickets(filter);
     }
 
-    console.log('TicketService: Using workflow task endpoint');
     let params = new HttpParams();
     
     if (filter) {
@@ -67,6 +66,21 @@ export class TicketService {
       // Search filter
       if (filter.search) {
         params = params.set('search', filter.search);
+      }
+
+      // Stage type filter (approval, kanban, etc.)
+      if (filter.stage_type) {
+        params = params.set('stage_type', filter.stage_type);
+      }
+
+      // Form type filter
+      if (filter.form_type) {
+        params = params.set('form_type', filter.form_type);
+      }
+
+      // Workflow ID filter
+      if (filter.workflow_id) {
+        params = params.set('workflow_id', filter.workflow_id.toString());
       }
       
       // Date filters
@@ -247,6 +261,14 @@ export class TicketService {
       updatedAt: new Date(task.updated_at),
       dueDate: dueDate ? new Date(dueDate) : undefined,
       tags: tags,
+      // Add requestor field from API response
+      requestor: task.requestor || customFormResponse.creator?.name || 'Unknown',
+      // Add enhanced workflow task data
+      workflow_stage_name: task.workflow_stage_name || stageName,
+      reference_id: task.reference_id || referenceId,
+      form_created_at: task.form_created_at || customFormResponse.created_at,
+      form_type: task.form_type || customForm.form_type,
+      form_name: task.form_name || customForm.form_name,
       customFormData: {
         taskId: task.id,
         workflowStage: workflowStage,

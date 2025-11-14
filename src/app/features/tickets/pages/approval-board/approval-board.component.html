@@ -73,23 +73,27 @@
     <!-- List View (Mailbox Style) -->
     <ng-container *ngIf="displayType === 'list'">
       <app-approval-list-view
-        [tickets]="filteredTickets"
-        [selectedTicket]="selectedTicket"
-        (selectTicket)="selectTicket($event)"
-        (deselectTicket)="selectedTicket = null"
+        [tasks]="filteredTasks"
+        [selectedTask]="selectedTask"
+        (selectTask)="selectTask($event)"
+        (deselectTask)="selectedTask = null"
         (approve)="handleApprove($event)"
-        (reject)="handleReject($event)">
+        (reject)="handleReject($event)"
+        (bulkApprove)="handleBulkApprove($event)"
+        (bulkReject)="handleBulkReject($event)">
       </app-approval-list-view>
     </ng-container>
 
     <!-- Grid View (Side-by-Side Layout) -->
     <ng-container *ngIf="displayType === 'grid'">
       <app-approval-grid-view
-        [tickets]="filteredTickets"
-        [selectedTicket]="selectedTicket"
-        (selectTicket)="selectTicket($event)"
+        [tasks]="filteredTasks"
+        [selectedTask]="selectedTask"
+        (selectTask)="selectTask($event)"
         (approve)="handleApprove($event)"
-        (reject)="handleReject($event)">
+        (reject)="handleReject($event)"
+        (bulkApprove)="handleBulkApprove($event)"
+        (bulkReject)="handleBulkReject($event)">
       </app-approval-grid-view>
     </ng-container>
   </div>

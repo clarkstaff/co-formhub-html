@@ -43,7 +43,7 @@ export class AppComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        // Initialize auth check on app startup
-        this.store.dispatch(AuthActions.initializeApp());
+        // Auth initialization is now handled by the AuthInitGuard
+        // This ensures proper timing of auth/me API call
     }
 }

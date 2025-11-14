@@ -26,14 +26,51 @@ import {
 // import { SocialAuthService } from '@abacritt/angularx-social-login';
 
 export interface UserModel {
-  id: string;
-  email: string;
+  id: string | number;
   first_name: string;
+  middle_name?: string;
   last_name: string;
+  full_name?: string;
+  profile_picture?: string;
+  signature?: string;
+  email: string;
+  email_verified_at?: string | null;
+  remember_token?: string | null;
+  status?: string;
+  reset_code?: string | null;
+  reset_code_expiry?: string | null;
+  activation_code?: string;
+  activation_expiry?: string | null;
+  activation_date?: string | null;
+  token_expiry?: string | null;
+  timezone_id?: number;
+  deleted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  manager_type?: string;
+  is_uppermanagement?: number;
+  slack_user_id?: string | null;
+  permissions?: string[];
+  permissionsRoles?: any;
+  employee_id?: number;
+  roles?: string[];
+  uid?: string;
+  coordinates?: {
+    longitude: string;
+    latitude: string;
+  };
+  timezone?: {
+    id: number;
+    zone: string;
+    name: string;
+  };
+  account?: any;
+  division?: any;
+  house?: any;
+  designation?: any;
+  modules?: string[];
+  is_static?: number;
   name?: string;
-  modules?: any[];
-  permissions?: any[];
-  is_static?: boolean;
   access_token?: string;
   expires_in?: string;
   password?: string;

@@ -24,8 +24,8 @@ export class AuthEffects {
   login$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AuthActions.login),
-      switchMap(({ email, password, redirectUrl }) =>
-        this.authService.loginHttp(email, password).pipe(
+      switchMap(({ email, password, redirectUrl }) => {
+        return this.authService.loginHttp(email, password).pipe(
           map((response) => {
             if (response?.access_token) {
               // Store auth data
@@ -36,11 +36,12 @@ export class AuthEffects {
             }
           }),
           catchError((error) => {
+            console.log('Auth Effect - Login failed:', error);
             const errorMessage = error?.error?.message || error?.message || 'Login failed';
             return of(AuthActions.loginFailure({ error: errorMessage }));
           })
-        )
-      )
+        );
+      })
     )
   );
 
@@ -94,9 +95,11 @@ export class AuthEffects {
   loadUser$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AuthActions.loadUser),
-      switchMap(() =>
-        this.authService.getUserByTokenHttp().pipe(
+      switchMap(() => {
+        console.log('Auth Effect - loadUser triggered, calling getUserByTokenHttp');
+        return this.authService.getUserByTokenHttp().pipe(
           map((user) => {
+            console.log('Auth Effect - getUserByTokenHttp response:', user);
             if (user) {
               return AuthActions.loadUserSuccess({ user });
             } else {
@@ -104,11 +107,12 @@ export class AuthEffects {
             }
           }),
           catchError((error) => {
+            console.log('Auth Effect - getUserByTokenHttp failed:', error);
             const errorMessage = error?.error?.message || error?.message || 'Failed to load user';
             return of(AuthActions.loadUserFailure({ error: errorMessage }));
           })
-        )
-      )
+        );
+      })
     )
   );
 
@@ -120,23 +124,55 @@ export class AuthEffects {
       tap(([action, redirectUrl]) => {
         const user = action.user;
         
-        // Store user modules if available
-        if (user?.modules && user.modules.length > 0) {
-          localStorage.setItem('recentModuleIDs', JSON.stringify(user.modules));
-          localStorage.setItem('is_static', user.is_static?.toString() || 'false');
-        }
+        // Set checking auth to false since user load is complete
+        this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: false }));
         
-        // Navigate to redirect URL or home if we have a redirect URL
+        // Navigate if we have a redirect URL (indicating this came from login flow)
         if (redirectUrl) {
-          const navigationUrl = redirectUrl || '/';
-          this.router.navigate([navigationUrl]);
-          
-          // Show success message
-          this.authService.showSuccessMessage(`Welcome! ${user?.first_name}`);
+          console.log('Auth Effect - Attempting navigation to:', redirectUrl);
+          this.router.navigate([redirectUrl]).then(success => {
+            if (success) {
+              // Show success message
+              this.authService.showSuccessMessage(`Welcome! ${user?.first_name || user?.full_name || user?.name || 'User'}`);
+            } else {
+              console.log('Auth Effect - Navigation failed, possibly due to route guards or invalid route');
+            }
+          }).catch(error => {
+            console.error('Auth Effect - Navigation error:', error);
+          });
+        } else {
+          console.log('Auth Effect - No redirect URL found, not navigating');
         }
       }),
       map(() => AuthActions.clearRedirectUrl())
     )
+  );
+
+  // Load user failure effect
+  loadUserFailure$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AuthActions.loadUserFailure),
+      tap(({ error }) => {
+        // Set checking auth to false
+        this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: false }));
+        console.error('Load user failed:', error);
+        // Don't show notification for load user failure as it might be due to logout
+      })
+    ), { dispatch: false }
+  );
+
+  // Token expired effect
+  tokenExpired$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AuthActions.tokenExpired),
+      tap(() => {
+        console.log('Auth Effect - tokenExpired triggered, cleaning up and redirecting to login');
+        this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: false }));
+        this.authService.showWarningMessage('Your session has expired. Please login again.');
+        this.authService.logoutHttp();
+        this.authService.navigateAfterLogout();
+      })
+    ), { dispatch: false }
   );
 
   // Registration effect
@@ -206,48 +242,48 @@ export class AuthEffects {
     )
   );
 
+  // Initialize app effect
+  initializeApp$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AuthActions.initializeApp),
+      tap(() => {
+        // Set checking auth state to true
+        this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: true }));
+      }),
+      switchMap(() => {
+        // Check if user is authenticated on app startup
+        return of(AuthActions.checkTokenValidity());
+      })
+    )
+  );
+
   // Token validity check effect
   checkTokenValidity$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AuthActions.checkTokenValidity),
       switchMap(() => {
+        console.log('Auth Effect - checkTokenValidity triggered');
+        
         // Get auth from localStorage
         const auth = this.authService.getAuthFromLocalStorage();
+        console.log('Auth Effect - Token from localStorage:', auth ? 'exists' : 'missing');
         
         if (!auth || !auth.access_token) {
+          console.log('Auth Effect - No token found, dispatching tokenExpired');
+          this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: false }));
           return of(AuthActions.tokenExpired());
         }
 
         // Check if token is expired
         if (AuthUtils.isTokenExpired(auth.access_token)) {
+          console.log('Auth Effect - Token expired, dispatching tokenExpired');
+          this.store.dispatch(AuthActions.setCheckingAuth({ checkingAuth: false }));
           return of(AuthActions.tokenExpired());
         }
 
+        console.log('Auth Effect - Token valid, dispatching loadUser');
         // Token is valid, load user
         return of(AuthActions.loadUser());
-      })
-    )
-  );
-
-  // Token expired effect
-  tokenExpired$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(AuthActions.tokenExpired),
-      tap(() => {
-        this.authService.showWarningMessage('Your session has expired. Please login again.');
-        this.authService.logoutHttp();
-        this.authService.navigateAfterLogout();
-      })
-    ), { dispatch: false }
-  );
-
-  // Initialize app effect
-  initializeApp$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(AuthActions.initializeApp),
-      switchMap(() => {
-        // Check if user is authenticated on app startup
-        return of(AuthActions.checkTokenValidity());
       })
     )
   );
@@ -276,16 +312,6 @@ export class AuthEffects {
       ofType(AuthActions.registerFailure),
       tap(({ error }) => {
         this.authService.showErrorMessage(error);
-      })
-    ), { dispatch: false }
-  );
-
-  loadUserFailure$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(AuthActions.loadUserFailure),
-      tap(({ error }) => {
-        console.error('Load user failed:', error);
-        // Don't show notification for load user failure as it might be due to logout
       })
     ), { dispatch: false }
   );

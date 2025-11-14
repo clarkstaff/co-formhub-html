@@ -3,6 +3,9 @@ import { Store } from '@ngrx/store';
 import { Router, NavigationEnd, Event as RouterEvent } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { AppService } from '../service/app.service';
+import { Observable, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { selectIsCheckingAuth, selectCurrentUser, selectIsAuthenticated } from '../core/store/auth/auth.selectors';
 
 @Component({
     selector: 'app-root',
@@ -11,8 +14,24 @@ import { AppService } from '../service/app.service';
 export class AppLayout {
     store: any;
     showTopButton = false;
+    isCheckingAuth$: Observable<boolean>;
+    isLoading$: Observable<boolean>;
+    
     constructor(public translate: TranslateService, public storeData: Store<any>, private service: AppService, private router: Router) {
         this.initStore();
+        this.isCheckingAuth$ = this.storeData.select(selectIsCheckingAuth);
+        
+        // Combine auth checking state and whether we have user data
+        this.isLoading$ = combineLatest([
+            this.storeData.select(selectIsCheckingAuth),
+            this.storeData.select(selectIsAuthenticated),
+            this.storeData.select(selectCurrentUser)
+        ]).pipe(
+            map(([isCheckingAuth, isAuthenticated, user]) => {
+                // Show loading if checking auth OR if authenticated but no user data yet
+                return isCheckingAuth || (isAuthenticated && !user);
+            })
+        );
     }
     headerClass = '';
     ngOnInit() {

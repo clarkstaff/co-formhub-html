@@ -11,21 +11,6 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
   template: `
     <div *ngIf="ticket && formDisplay" class="min-vh-100 bg-light p-4">
       <div class="container">
-        <!-- Header Section -->
-        <div class="d-flex align-items-center gap-3 mb-5" *ngIf="formDisplay.header">
-          <h1 class="h3 fw-semibold mb-0">{{ formDisplay.header.title }}</h1>
-          <span class="badge ms-auto" 
-                [ngClass]="{
-                  'bg-success': formDisplay.header.status === 'approved',
-                  'bg-warning text-dark': formDisplay.header.status === 'pending',
-                  'bg-danger': formDisplay.header.status === 'rejected',
-                  'bg-primary': formDisplay.header.status === 'open',
-                  'bg-info': formDisplay.header.status === 'in_progress'
-                }">
-            {{ formDisplay.header.status | titlecase }}
-          </span>
-        </div>
-
         <!-- Form Fields Section -->
         <div *ngIf="formDisplay.fields.length > 0" class="row g-4 mb-4">
           <div *ngFor="let field of formDisplay.fields; trackBy: trackByField" 

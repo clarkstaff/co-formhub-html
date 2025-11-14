@@ -14,6 +14,7 @@ export interface ConfirmationDialogData {
 export interface ConfirmationResult {
   confirmed: boolean;
   skipNextTime: boolean;
+  notes?: string;
 }
 
 @Component({
@@ -37,11 +38,13 @@ export class ConfirmationDialogComponent {
   @Output() close = new EventEmitter<void>();
 
   skipNextTime: boolean = false;
+  notes: string = '';
 
   onConfirm() {
     this.result.emit({
       confirmed: true,
-      skipNextTime: this.skipNextTime
+      skipNextTime: this.skipNextTime,
+      notes: this.notes
     });
     this.onClose();
   }
@@ -49,13 +52,15 @@ export class ConfirmationDialogComponent {
   onCancel() {
     this.result.emit({
       confirmed: false,
-      skipNextTime: this.skipNextTime
+      skipNextTime: this.skipNextTime,
+      notes: this.notes
     });
     this.onClose();
   }
 
   onClose() {
     this.skipNextTime = false;
+    this.notes = '';
     this.close.emit();
   }
 

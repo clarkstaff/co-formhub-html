@@ -18,6 +18,13 @@ export interface Ticket {
   dueDate?: Date;
   tags?: string[];
   attachments?: TicketAttachment[];
+  // Enhanced workflow task data
+  workflow_stage_name?: string;
+  reference_id?: string;
+  form_created_at?: Date | string;
+  form_type?: string;
+  form_name?: string;
+  requestor?: string;
   // Custom form task specific data
   customFormData?: {
     taskId: number;
@@ -105,4 +112,8 @@ export interface TicketFilter {
   sortOrder?: 'asc' | 'desc';
   perPage?: number;
   page?: number;
+  // New filters for workflow tasks
+  stage_type?: 'approval' | 'kanban' | string;
+  form_type?: string;
+  workflow_id?: number;
 }

@@ -141,7 +141,6 @@ export class TicketDisplayUtil {
     else if (formData.expenses || formData.receipts || formData.reimbursement) {
       formType = 'expense_report';
     }
-
     // Detect structure version based on field patterns
     if (formData.hasOwnProperty('created_at') || formData.hasOwnProperty('updated_at')) {
       structureVersion = 'v2'; // Laravel timestamps pattern
@@ -168,7 +167,9 @@ export class TicketDisplayUtil {
    */
   static getAdaptiveFormDataSummary(ticket: Ticket): string {
     const customFormData = ticket.customFormData;
-    if (!customFormData?.formData) return ticket.description;
+    if (!customFormData?.formData) {
+      return ticket.description;
+    }
     
     const structure = this.processCustomFormData(customFormData);
     const formData = customFormData.formData;
@@ -227,13 +228,14 @@ export class TicketDisplayUtil {
     actions: string[];
   } {
     const customFormData = ticket.customFormData;
+    
     if (!customFormData?.formData) {
       return this.getDefaultFormDisplay(ticket);
     }
 
     const structure = this.processCustomFormData(customFormData);
     const formData = customFormData.formData;
-
+    
     // Generate form display based on detected structure
     switch (structure.formType) {
       case 'copc':
@@ -600,7 +602,7 @@ export class TicketDisplayUtil {
 
     switch (type) {
       case 'date':
-        return new Date(value).toLocaleDateString();
+        return this.formatDate(value);
       case 'currency':
         return this.formatCurrency(value);
       case 'boolean':
@@ -755,6 +757,33 @@ export class TicketDisplayUtil {
     });
     
     return buttons;
+  }
+
+  /**
+   * Format date in dd/mmmm/yyyy format
+   */
+  static formatDate(date: string | Date): string {
+    if (!date) return '-';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      if (isNaN(dateObj.getTime())) {
+        return String(date); // Return original if invalid date
+      }
+      
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      const month = months[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      return String(date);
+    }
   }
 
   /**

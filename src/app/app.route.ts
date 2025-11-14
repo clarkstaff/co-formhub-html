@@ -30,10 +30,16 @@ import { KnowledgeBaseComponent } from './pages/knowledge-base';
 import { FaqComponent } from './pages/faq';
 import { TicketComponent } from './features/dashboard/pages/ticket/ticket.component';
 
+// guards
+import { AuthGuard } from './core/guards/auth.guard';
+import { AuthInitGuard } from './core/guards/auth-init.guard';
+
 export const routes: Routes = [
     {
         path: '',
         component: AppLayout,
+        canActivate: [AuthInitGuard, AuthGuard],
+        canActivateChild: [AuthInitGuard, AuthGuard],
         children: [
             // dashboard
             { path: 'tickets', component: TicketComponent, data: { title: 'Dashboard' } },
@@ -87,6 +93,8 @@ export const routes: Routes = [
     {
         path: '',
         component: AuthLayout,
+        canActivate: [AuthInitGuard],
+        canActivateChild: [AuthInitGuard],
         children: [
             // pages
             { path: '', loadChildren: () => import('./pages/pages.module').then((d) => d.PagesModule) },
