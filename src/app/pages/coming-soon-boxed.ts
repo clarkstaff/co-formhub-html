@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 
 @Component({
+    selector: 'coming-soon-boxed',
     templateUrl: './coming-soon-boxed.html',
 })
 export class ComingSoonBoxedComponent {

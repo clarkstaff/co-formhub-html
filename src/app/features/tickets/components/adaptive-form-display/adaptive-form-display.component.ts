@@ -9,16 +9,15 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div *ngIf="ticket && formDisplay" class="min-vh-100 bg-light p-4">
-      <div class="container">
+    <div *ngIf="ticket && formDisplay" class="min-vh-100 bg-white dark:bg-black p-6">
+      <div class="container mx-auto max-w-7xl">
         <!-- Form Fields Section -->
-        <div *ngIf="formDisplay.fields.length > 0" class="row g-4 mb-4">
-          <div *ngFor="let field of formDisplay.fields; trackBy: trackByField" 
-               class="col-md-6">
-            <label class="form-label fw-medium small">
+        <div *ngIf="formDisplay.fields.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div *ngFor="let field of formDisplay.fields; trackBy: trackByField">
+            <label class="block text-sm font-medium text-black dark:text-white mb-2">
               {{ field.label }}
             </label>
-            <div class="form-control bg-light">
+            <div class="bg-white-light dark:bg-dark border border-white-light dark:border-dark rounded-lg px-4 py-3 min-h-[42px] text-black dark:text-white">
               <!-- Date Display -->
               <span *ngIf="field.displayType === 'date'">
                 {{ formatDisplayValue(field.value, field.type) }}
@@ -31,7 +30,7 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
               
               <!-- Badge Display -->
               <span *ngIf="field.displayType === 'badge'" 
-                    class="badge"
+                    class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
                     [ngClass]="getBadgeClass(field.value)">
                 {{ field.value | titlecase }}
               </span>
@@ -45,26 +44,28 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
         </div>
 
         <!-- Tables Section -->
-        <div *ngFor="let table of formDisplay.tables; trackBy: trackByTable" class="mb-4">
-          <h2 class="h5 fw-medium mb-3">{{ table.title }}</h2>
-          <div class="table-responsive border rounded">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th *ngFor="let column of table.columns; trackBy: trackByColumn" 
-                      class="text-uppercase small fw-semibold"
-                      [class.text-end]="column.align === 'right'"
-                      [class.text-center]="column.align === 'center'">
-                    {{ column.label }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of table.data; let i = index; trackBy: trackByRow">
-                  <td *ngFor="let column of table.columns; trackBy: trackByColumn" 
-                      class="small"
-                      [class.text-end]="column.align === 'right'"
-                      [class.text-center]="column.align === 'center'">
+        <div *ngFor="let table of formDisplay.tables; trackBy: trackByTable" class="mb-8">
+          <h2 class="text-xl font-semibold mb-4 text-black dark:text-white">{{ table.title }}</h2>
+          <div class="bg-white dark:bg-dark border border-white-light dark:border-dark rounded-lg overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-white-light dark:bg-black border-b border-white-light dark:border-dark">
+                  <tr>
+                    <th *ngFor="let column of table.columns; trackBy: trackByColumn" 
+                        class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-dark dark:text-white-dark"
+                        [class.text-right]="column.align === 'right'"
+                        [class.text-center]="column.align === 'center'">
+                      {{ column.label }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white-light dark:divide-dark">
+                  <tr *ngFor="let row of table.data; let i = index; trackBy: trackByRow" 
+                      class="hover:bg-white-light dark:hover:bg-black transition-colors duration-150">
+                    <td *ngFor="let column of table.columns; trackBy: trackByColumn" 
+                        class="px-6 py-4 text-sm text-black dark:text-white"
+                        [class.text-right]="column.align === 'right'"
+                        [class.text-center]="column.align === 'center'">
                     <span *ngIf="column.type === 'currency' && column.align === 'right'">
                       PHP {{ formatCurrencyAmount(row[column.key]) }}
                     </span>
@@ -77,19 +78,22 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
             </table>
           </div>
         </div>
+      </div>
 
         <!-- Summary Section -->
-        <div *ngIf="formDisplay.summary.length > 0" class="d-flex justify-content-end mb-4">
-          <div style="width: 400px;">
+        <div *ngIf="formDisplay.summary.length > 0" class="flex justify-end mb-8">
+          <div class="w-full max-w-md bg-white dark:bg-dark border border-white-light dark:border-dark rounded-lg p-6 shadow-sm">
             <div *ngFor="let summaryItem of formDisplay.summary; let last = last; trackBy: trackBySummary"
-                 class="d-flex justify-content-between align-items-center mb-3"
-                 [class.pb-3]="!last"
-                 [class.border-bottom]="!last">
-              <span class="small fw-medium">{{ summaryItem.label }}</span>
-              <span class="small fw-semibold"
+                 class="flex justify-between items-center py-3"
+                 [class.border-b]="!last"
+                 [class.border-white-light]="!last"
+                 [class.dark:border-dark]="!last">
+              <span class="text-sm font-medium text-dark dark:text-white-dark">{{ summaryItem.label }}</span>
+              <span class="text-sm font-semibold"
                     [ngClass]="{
                       'text-success': summaryItem.type === 'balance' && isPositive(summaryItem.value),
-                      'text-danger': summaryItem.type === 'balance' && isNegative(summaryItem.value) && summaryItem.label.toLowerCase().includes('balance')
+                      'text-danger': summaryItem.type === 'balance' && isNegative(summaryItem.value) && summaryItem.label.toLowerCase().includes('balance'),
+                      'text-black dark:text-white': !(summaryItem.type === 'balance' && (isPositive(summaryItem.value) || (isNegative(summaryItem.value) && summaryItem.label.toLowerCase().includes('balance'))))
                     }">
                 PHP {{ formatNumberValue(summaryItem.value) }}
               </span>
@@ -101,9 +105,9 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
         <!-- Form actions are handled by parent approval component -->
 
         <!-- Debug Info (Development Only) -->
-        <div *ngIf="showDebugInfo" class="mt-5 p-3 bg-light border rounded">
-          <h6>Debug Information</h6>
-          <pre>{{ getDebugInfo() | json }}</pre>
+        <div *ngIf="showDebugInfo" class="mt-8 p-6 bg-white-light dark:bg-dark border border-white-light dark:border-dark rounded-lg">
+          <h6 class="text-lg font-semibold text-black dark:text-white mb-4">Debug Information</h6>
+          <pre class="text-sm text-dark dark:text-white-dark bg-white dark:bg-black p-4 rounded border overflow-x-auto">{{ getDebugInfo() | json }}</pre>
         </div>
       </div>
     </div>
@@ -113,28 +117,55 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
       font-size: 0.75rem;
     }
     
-    .table th {
-      background-color: var(--bs-gray-100) !important;
-      border-bottom: 2px solid var(--bs-border-color);
+    /* Custom scrollbar for tables */
+    .overflow-x-auto::-webkit-scrollbar {
+      height: 8px;
     }
     
-    .form-control.bg-light {
-      border: 1px solid var(--bs-border-color);
-      background-color: var(--bs-gray-100) !important;
+    .overflow-x-auto::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+    
+    /* Dark mode scrollbar */
+    @media (prefers-color-scheme: dark) {
+      .overflow-x-auto::-webkit-scrollbar-track {
+        background: #3b3f5c;
+      }
+      
+      .overflow-x-auto::-webkit-scrollbar-thumb {
+        background: #888ea8;
+      }
+      
+      .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+        background: #a0a6b8;
+      }
     }
     
     .currency-positive {
-      color: var(--bs-success);
+      color: #00ab55;
     }
     
     .currency-negative {
-      color: var(--bs-danger);
+      color: #e7515a;
     }
-
-    .debug-info {
-      font-size: 0.75rem;
-      max-height: 200px;
-      overflow-y: auto;
+    
+    /* Ensure proper spacing for grid layout */
+    .grid {
+      display: grid;
+    }
+    
+    /* Container max width */
+    .max-w-7xl {
+      max-width: 80rem;
     }
   `]
 })
@@ -191,13 +222,13 @@ export class AdaptiveFormDisplayComponent {
   // Style functions
   getBadgeClass(value: string): string {
     const val = value?.toLowerCase() || '';
-    if (['urgent', 'high', 'critical'].includes(val)) return 'bg-danger';
-    if (['medium', 'normal'].includes(val)) return 'bg-warning text-dark';
-    if (['low', 'minor'].includes(val)) return 'bg-success';
-    if (['approved', 'active', 'completed'].includes(val)) return 'bg-success';
-    if (['pending', 'review'].includes(val)) return 'bg-warning text-dark';
-    if (['rejected', 'cancelled'].includes(val)) return 'bg-danger';
-    return 'bg-primary';
+    if (['urgent', 'high', 'critical'].includes(val)) return 'bg-danger text-white';
+    if (['medium', 'normal'].includes(val)) return 'bg-warning text-black';
+    if (['low', 'minor'].includes(val)) return 'bg-success text-white';
+    if (['approved', 'active', 'completed'].includes(val)) return 'bg-success text-white';
+    if (['pending', 'review'].includes(val)) return 'bg-warning text-black';
+    if (['rejected', 'cancelled'].includes(val)) return 'bg-danger text-white';
+    return 'bg-primary text-white';
   }
 
   getCellClass(value: any, type?: string): string {

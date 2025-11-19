@@ -27,24 +27,24 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
       <!-- Details Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div>
-          <h3 class="text-sm font-medium text-gray-500 mb-2">Description</h3>
-          <p class="text-gray-900">{{ ticket.description }}</p>
+          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
+          <p class="text-gray-900 dark:text-gray-100">{{ ticket.description }}</p>
           
           <!-- Custom Form Data Summary -->
           <div *ngIf="ticket.customFormData" class="mt-4">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">Details</h3>
-            <div class="bg-gray-50 p-3 rounded text-sm">
-              <p><strong>Reference:</strong> {{ ticket.customFormData.referenceId }}</p>
-              <p class="mt-1">{{ getFormDataSummary() }}</p>
+            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Details</h3>
+            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded text-sm">
+              <p class="text-gray-900 dark:text-gray-100"><strong>Reference:</strong> {{ ticket.customFormData.referenceId }}</p>
+              <p class="mt-1 text-gray-900 dark:text-gray-100">{{ getFormDataSummary() }}</p>
             </div>
           </div>
         </div>
 
         <div>
-          <h3 class="text-sm font-medium text-gray-500 mb-2">Details</h3>
+          <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Details</h3>
           <div class="space-y-2">
             <div class="flex justify-between items-center">
-              <span class="text-sm text-gray-600">Assigned to:</span>
+              <span class="text-sm text-gray-600 dark:text-gray-300">Assigned to:</span>
               <app-assignee-display 
                 [assigneeDetails]="ticket.assigneeDetails || []"
                 [displayMode]="assigneeDisplayMode"
@@ -52,20 +52,20 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
               </app-assignee-display>
             </div>
             <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Requestor:</span>
-              <span class="text-sm font-medium">{{ ticket.requestor || 'Unknown' }}</span>
+              <span class="text-sm text-gray-600 dark:text-gray-300">Requestor:</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ ticket.requestor || 'Unknown' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Status:</span>
-              <span class="text-sm font-medium">{{ ticket.workflow_stage_name || 'Approval' }}</span>
+              <span class="text-sm text-gray-600 dark:text-gray-300">Status:</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ ticket.workflow_stage_name || 'Approval' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Requested At:</span>
-              <span class="text-sm font-medium">{{ formatDate(ticket.form_created_at || ticket.createdAt) }}</span>
+              <span class="text-sm text-gray-600 dark:text-gray-300">Requested At:</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ formatDate(ticket.form_created_at || ticket.createdAt) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Task Created:</span>
-              <span class="text-sm font-medium">{{ formatDate(ticket.createdAt) }}</span>
+              <span class="text-sm text-gray-600 dark:text-gray-300">Task Created:</span>
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ formatDate(ticket.createdAt) }}</span>
             </div>
           </div>
         </div>
@@ -79,10 +79,10 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
       <!-- Tags -->
       <div *ngIf="ticket.tags && ticket.tags.length > 0" class="mt-6">
-        <h3 class="text-sm font-medium text-gray-500 mb-2">Tags</h3>
-        <div class="bg-gray-50 p-4 rounded-md">
+        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Tags</h3>
+        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
           <div class="flex flex-wrap gap-2">
-            <span *ngFor="let tag of ticket.tags" class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+            <span *ngFor="let tag of ticket.tags" class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded">
               {{ tag }}
             </span>
           </div>

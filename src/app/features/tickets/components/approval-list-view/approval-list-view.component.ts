@@ -4,21 +4,23 @@ import { Ticket } from '../../models/ticket.interface';
 import { WorkflowTask } from '../../services/workflow-task.service';
 import { TicketDetailContentComponent } from '../ticket-detail-content/ticket-detail-content.component';
 import { AssigneeDisplayComponent } from '../../../../shared/components/assignee-display/assignee-display.component';
+import { LazyPaginationComponent } from '../../../../shared/components/lazy-pagination/lazy-pagination.component';
+import { ListSkeletonComponent } from './list-skeleton.component';
 import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
 @Component({
   selector: 'app-approval-list-view',
   standalone: true,
-  imports: [CommonModule, TicketDetailContentComponent, AssigneeDisplayComponent],
+  imports: [CommonModule, TicketDetailContentComponent, AssigneeDisplayComponent, LazyPaginationComponent, ListSkeletonComponent],
   template: `
     <!-- Bulk Actions Bar -->
-    <div *ngIf="hasSelectedTasks && !selectedTask" class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+    <div *ngIf="hasSelectedTasks && !selectedTask" class="bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-400 dark:border-blue-500 p-4 mb-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
-          <svg class="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-blue-400 dark:text-blue-300 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <span class="text-sm font-medium text-blue-800">
+          <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
             {{ selectedTasksCount }} {{ selectedTasksCount === 1 ? 'task' : 'tasks' }} selected
           </span>
         </div>
@@ -46,97 +48,118 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
     </div>
 
     <!-- Task List View -->
-    <div *ngIf="!selectedTask" class="panel">
-      <div class="table-responsive">
-        <table class="table-striped">
-          <thead>
-            <tr>
-              <th class="w-12">
-                <input 
-                  type="checkbox" 
-                  class="form-checkbox"
-                  [checked]="isAllSelected"
-                  [indeterminate]="isIndeterminate"
-                  (change)="toggleAllTasks($event)"
-                >
-              </th>
-              <th>Task</th>
-              <th>Request Type</th>
-              <th>Requestor</th>
-              <th>Requested At</th>
-              <th>Assignee</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let task of tasks" 
-                class="group hover:bg-white-light/50 cursor-pointer"
-                [class.bg-blue-50]="isTaskSelected(task.id)">
-              <td (click)="$event.stopPropagation()">
-                <input 
-                  type="checkbox" 
-                  class="form-checkbox"
-                  [checked]="isTaskSelected(task.id)"
-                  (change)="toggleTaskSelection(task.id, $event)"
-                >
-              </td>
-              <td (click)="onSelectTask(task)">
-                <div class="flex items-center">
-                  <div class="flex-1">
-                    <p class="font-semibold text-dark">{{ task.title }}</p>
-                    <p class="text-sm text-gray-600 line-clamp-1">{{ getFormDataSummary(task) }}</p>
-                    <p class="text-xs text-blue-600" *ngIf="task.reference_id">
-                      Ref: {{ task.reference_id }}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td (click)="onSelectTask(task)">
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  {{ task.form_name || task.form_type || 'Custom Form' }}
-                </span>
-              </td>
-              <td (click)="onSelectTask(task)">
-                <span class="text-sm text-gray-900 font-medium">
-                  {{ task.requestor || 'Unknown' }}
-                </span>
-              </td>
-              <td (click)="onSelectTask(task)">
-                <span class="text-sm text-gray-600">
-                  {{ formatDate(task.created_at) }}
-                </span>
-              </td>
-              <td (click)="onSelectTask(task)">
-                <app-assignee-display 
-                  [assigneeDetails]="getAssigneeDetails(task)"
-                  displayMode="compact">
-                </app-assignee-display>
-              </td>
-              <td>
-                <div class="flex items-center justify-center gap-2">
-                  <button
-                    class="btn btn-sm btn-outline-danger"
-                    (click)="onReject(task.id); $event.stopPropagation()"
-                    title="Reject"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                  <button
-                    class="btn btn-sm btn-outline-success"
-                    (click)="onApprove(task.id); $event.stopPropagation()"
-                    title="Approve"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div *ngIf="!selectedTask">
+      <!-- Show skeleton loading when loading and no tasks -->
+      <app-list-skeleton *ngIf="loading && tasks.length === 0"></app-list-skeleton>
+      
+      <!-- Show actual content when not loading or when we have tasks -->
+      <div *ngIf="!loading || tasks.length > 0">
+        <div class="panel">
+          <div class="table-responsive">
+            <table class="table-striped">
+              <thead>
+                <tr>
+                  <th class="w-12">
+                    <input 
+                      type="checkbox" 
+                      class="form-checkbox"
+                      [checked]="isAllSelected"
+                      [indeterminate]="isIndeterminate"
+                      (change)="toggleAllTasks($event)"
+                    >
+                  </th>
+                  <th>Task</th>
+                  <th>Request Type</th>
+                  <th>Requestor</th>
+                  <th>Requested At</th>
+                  <th>Assignee</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let task of tasks" 
+                    class="group hover:bg-white-light/50 dark:hover:bg-gray-700/50 cursor-pointer"
+                    [class.bg-blue-50]="isTaskSelected(task.id)"
+                    [class.dark:bg-blue-900]="isTaskSelected(task.id)">
+                  <td (click)="$event.stopPropagation()">
+                    <input 
+                      type="checkbox" 
+                      class="form-checkbox"
+                      [checked]="isTaskSelected(task.id)"
+                      (change)="toggleTaskSelection(task.id, $event)"
+                    >
+                  </td>
+                  <td (click)="onSelectTask(task)">
+                    <div class="flex items-center">
+                      <div class="flex-1">
+                        <p class="font-semibold text-dark dark:text-gray-100">{{ task.title }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">{{ getFormDataSummary(task) }}</p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400" *ngIf="task.reference_id">
+                          Ref: {{ task.reference_id }}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td (click)="onSelectTask(task)">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                      {{ task.form_name || task.form_type || 'Custom Form' }}
+                    </span>
+                  </td>
+                  <td (click)="onSelectTask(task)">
+                    <span class="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                      {{ task.requestor || 'Unknown' }}
+                    </span>
+                  </td>
+                  <td (click)="onSelectTask(task)">
+                    <span class="text-sm text-gray-600 dark:text-gray-300">
+                      {{ formatDate(task.created_at) }}
+                    </span>
+                  </td>
+                  <td (click)="onSelectTask(task)">
+                    <app-assignee-display 
+                      [assigneeDetails]="getAssigneeDetails(task)"
+                      displayMode="compact">
+                    </app-assignee-display>
+                  </td>
+                  <td>
+                    <div class="flex items-center justify-center gap-2">
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        (click)="onReject(task.id); $event.stopPropagation()"
+                        title="Reject"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-success"
+                        (click)="onApprove(task.id); $event.stopPropagation()"
+                        title="Approve"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Pagination -->
+        <app-lazy-pagination
+          *ngIf="totalItems > 0"
+          [currentPage]="currentPage"
+          [totalPages]="totalPages"
+          [totalItems]="totalItems"
+          [itemsPerPage]="itemsPerPage"
+          [loading]="loading"
+          [hasNextPage]="hasNextPage"
+          (pageChange)="pageChange.emit($event)">
+        </app-lazy-pagination>
       </div>
     </div>
 
@@ -149,8 +172,8 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
-          <h4 class="text-base font-medium ltr:mr-2 rtl:ml-2 md:text-lg">{{ selectedTask.title }}</h4>
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" *ngIf="selectedTask.reference_id">
+          <h4 class="text-base font-medium ltr:mr-2 rtl:ml-2 md:text-lg text-gray-900 dark:text-gray-100">{{ selectedTask.title }}</h4>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200" *ngIf="selectedTask.reference_id">
             {{ selectedTask.reference_id }}
           </span>
         </div>
@@ -185,15 +208,21 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
     </div>
 
     <!-- Empty State -->
-    <div *ngIf="tasks.length === 0 && !selectedTask" class="text-center py-8">
-      <h3 class="text-lg font-medium text-gray-900 mb-2">No tasks found</h3>
-      <p class="text-gray-500">There are no tasks to review.</p>
+    <div *ngIf="tasks.length === 0 && !selectedTask && !loading" class="text-center py-8">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No tasks found</h3>
+      <p class="text-gray-500 dark:text-gray-400">There are no tasks to review.</p>
     </div>
   `
 })
 export class ApprovalListViewComponent {
   @Input() tasks: WorkflowTask[] = [];
   @Input() selectedTask: WorkflowTask | null = null;
+  @Input() loading: boolean = false;
+  @Input() currentPage: number = 1;
+  @Input() totalPages: number = 1;
+  @Input() totalItems: number = 0;
+  @Input() itemsPerPage: number = 10;
+  @Input() hasNextPage: boolean = false;
   
   @Output() selectTask = new EventEmitter<WorkflowTask>();
   @Output() deselectTask = new EventEmitter<void>();
@@ -201,6 +230,7 @@ export class ApprovalListViewComponent {
   @Output() reject = new EventEmitter<string>();
   @Output() bulkApprove = new EventEmitter<string[]>();
   @Output() bulkReject = new EventEmitter<string[]>();
+  @Output() pageChange = new EventEmitter<number>();
 
   // Bulk selection state
   selectedTaskIds: Set<string> = new Set();

@@ -36,5 +36,6 @@ const routes: Routes = [
         Error503Component,
         MaintenenceComponent,
     ],
+    exports: [ComingSoonBoxedComponent],
 })
 export class PagesModule {}

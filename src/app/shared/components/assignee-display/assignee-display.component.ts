@@ -11,10 +11,10 @@ import { TicketAssignee } from '../../../features/tickets/models/ticket.interfac
       <ng-container [ngSwitch]="displayMode">
         <!-- Compact display - just names -->
         <div *ngSwitchCase="'compact'" class="compact-display">
-          <span class="assignee-text" [title]="fullAssigneeTooltip">
+          <span class="assignee-text text-dark dark:text-white-dark font-medium" [title]="fullAssigneeTooltip">
             {{ displayText }}
           </span>
-          <span *ngIf="hasMultipleAssignees" class="badge badge-secondary ms-1">
+          <span *ngIf="hasMultipleAssignees" class="inline-flex items-center px-2 py-1 rounded text-xs bg-secondary-light dark:bg-secondary-dark-light text-secondary dark:text-secondary ml-1">
             +{{ additionalCount }}
           </span>
         </div>
@@ -23,9 +23,9 @@ import { TicketAssignee } from '../../../features/tickets/models/ticket.interfac
         <div *ngSwitchCase="'detailed'" class="detailed-display">
           <div 
             *ngFor="let assignee of assigneeDetails; trackBy: trackByAssigneeId" 
-            class="assignee-item mb-1">
-            <span class="assignee-name">{{ assignee.assignee_name }}</span>
-            <span class="assignee-type badge badge-outline ms-2" 
+            class="assignee-item mb-1 py-1 border-b border-white-light dark:border-dark last:border-b-0">
+            <span class="assignee-name font-medium text-black dark:text-white">{{ assignee.assignee_name }}</span>
+            <span class="assignee-type inline-flex items-center px-2 py-1 rounded text-xs ml-2 border border-white-light dark:border-dark bg-transparent text-dark dark:text-white-dark" 
                   [class]="getAssigneeTypeBadgeClass(assignee.assignee_type)">
               {{ getAssigneeTypeLabel(assignee.assignee_type) }}
             </span>
@@ -33,31 +33,31 @@ import { TicketAssignee } from '../../../features/tickets/models/ticket.interfac
         </div>
         
         <!-- Avatar display - show profile pictures/initials -->
-        <div *ngSwitchCase="'avatar'" class="avatar-display d-flex">
+        <div *ngSwitchCase="'avatar'" class="avatar-display flex items-center">
           <div 
             *ngFor="let assignee of visibleAssignees; trackBy: trackByAssigneeId"
-            class="assignee-avatar me-1" 
+            class="assignee-avatar mr-1" 
             [title]="assignee.assignee_name">
-            <div class="avatar-circle" 
+            <div class="avatar-circle w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white uppercase" 
                  [class]="getAssigneeTypeClass(assignee.assignee_type)">
               {{ getAssigneeInitials(assignee.assignee_name) }}
             </div>
           </div>
           <div *ngIf="hasHiddenAssignees" 
-               class="avatar-circle more-assignees" 
+               class="avatar-circle w-8 h-8 rounded-full flex items-center justify-center text-xs bg-dark dark:bg-white-dark text-white dark:text-black" 
                [title]="hiddenAssigneesTooltip">
             +{{ additionalCount }}
           </div>
         </div>
         
         <!-- List display - simple bulleted list -->
-        <ul *ngSwitchDefault class="list-display list-unstyled mb-0">
+        <ul *ngSwitchDefault class="list-display list-none mb-0 p-0">
           <li *ngFor="let assignee of assigneeDetails; trackBy: trackByAssigneeId" 
-              class="assignee-list-item">
-            <i class="fas fa-user me-2" 
+              class="assignee-list-item py-1">
+            <i class="fas fa-user mr-2 text-dark dark:text-white-dark" 
                [class]="getAssigneeIconClass(assignee.assignee_type)"></i>
-            {{ assignee.assignee_name }}
-            <small class="text-muted ms-2">({{ getAssigneeTypeLabel(assignee.assignee_type) }})</small>
+            <span class="text-black dark:text-white">{{ assignee.assignee_name }}</span>
+            <small class="text-dark dark:text-white-dark ml-2">({{ getAssigneeTypeLabel(assignee.assignee_type) }})</small>
           </li>
         </ul>
       </ng-container>
@@ -68,76 +68,70 @@ import { TicketAssignee } from '../../../features/tickets/models/ticket.interfac
       font-size: 0.875rem;
     }
     
-    .compact-display .assignee-text {
-      color: #495057;
-      font-weight: 500;
+    /* Avatar type classes using custom theme colors */
+    .avatar-user { background-color: #4361ee !important; }
+    .avatar-employee { background-color: #805dca !important; }
+    .avatar-group { background-color: #00ab55 !important; }
+    .avatar-role { background-color: #e2a03f !important; }
+    .avatar-division { background-color: #e7515a !important; }
+    
+    /* Badge type classes using custom theme colors */
+    .badge-user { 
+      background-color: #eaf1ff !important; 
+      color: #4361ee !important;
+      border-color: #4361ee !important;
+    }
+    .badge-employee { 
+      background-color: #ebe4f7 !important; 
+      color: #805dca !important;
+      border-color: #805dca !important;
+    }
+    .badge-group { 
+      background-color: #ddf5f0 !important; 
+      color: #00ab55 !important;
+      border-color: #00ab55 !important;
+    }
+    .badge-role { 
+      background-color: #fff9ed !important; 
+      color: #e2a03f !important;
+      border-color: #e2a03f !important;
+    }
+    .badge-division { 
+      background-color: #fff5f5 !important; 
+      color: #e7515a !important;
+      border-color: #e7515a !important;
     }
     
-    .detailed-display .assignee-item {
-      padding: 0.25rem 0;
-      border-bottom: 1px solid #f8f9fa;
+    /* Dark mode badge overrides */
+    @media (prefers-color-scheme: dark) {
+      .badge-user { 
+        background-color: rgba(67,97,238,.15) !important; 
+        color: #4361ee !important;
+      }
+      .badge-employee { 
+        background-color: rgb(128, 93, 202, 0.15) !important; 
+        color: #805dca !important;
+      }
+      .badge-group { 
+        background-color: rgba(0,171,85,.15) !important; 
+        color: #00ab55 !important;
+      }
+      .badge-role { 
+        background-color: rgba(226,160,63,.15) !important; 
+        color: #e2a03f !important;
+      }
+      .badge-division { 
+        background-color: rgba(231,81,90,.15) !important; 
+        color: #e7515a !important;
+      }
     }
     
-    .assignee-name {
-      font-weight: 500;
-      color: #212529;
-    }
-    
-    .assignee-type {
-      font-size: 0.75rem;
-      padding: 0.125rem 0.5rem;
-      border-radius: 0.375rem;
-    }
-    
-    .badge-outline {
-      border: 1px solid #dee2e6;
-      background: transparent;
-      color: #6c757d;
-    }
-    
-    .badge-user { background-color: #e3f2fd; color: #1976d2; }
-    .badge-employee { background-color: #f3e5f5; color: #7b1fa2; }
-    .badge-group { background-color: #e8f5e8; color: #388e3c; }
-    .badge-role { background-color: #fff3e0; color: #f57c00; }
-    .badge-division { background-color: #fce4ec; color: #c2185b; }
-    
-    .avatar-display {
-      align-items: center;
-    }
-    
-    .avatar-circle {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: white;
-      text-transform: uppercase;
-    }
-    
-    .avatar-user { background-color: #2196f3; }
-    .avatar-employee { background-color: #9c27b0; }
-    .avatar-group { background-color: #4caf50; }
-    .avatar-role { background-color: #ff9800; }
-    .avatar-division { background-color: #e91e63; }
-    .more-assignees { 
-      background-color: #6c757d; 
-      font-size: 0.625rem;
-    }
-    
-    .list-display .assignee-list-item {
-      padding: 0.125rem 0;
-    }
-    
-    .fa-user { color: #6c757d; }
-    .icon-user { color: #2196f3; }
-    .icon-employee { color: #9c27b0; }
-    .icon-group { color: #4caf50; }
-    .icon-role { color: #ff9800; }
-    .icon-division { color: #e91e63; }
+    /* Icon type classes using custom theme colors */
+    .icon-user { color: #4361ee !important; }
+    .icon-employee { color: #805dca !important; }
+    .icon-group { color: #00ab55 !important; }
+    .icon-role { color: #e2a03f !important; }
+    .icon-division { color: #e7515a !important; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

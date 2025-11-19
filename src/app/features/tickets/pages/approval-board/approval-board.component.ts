@@ -55,6 +55,16 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   error: string | null = null;
   processing = false;
 
+  // Pagination
+  currentPage: number = 1;
+  totalPages: number = 1;
+  totalItems: number = 0;
+  itemsPerPage: number = 20;
+  hasNextPage: boolean = false;
+  
+  // Pagination meta from API
+  paginationMeta: any = null;
+
   // Enum references for template (keeping for backward compatibility)
   TicketStatus = TicketStatus;
   TicketPriority = TicketPriority;
@@ -74,26 +84,82 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadPendingTasks() {
-    this.loading = true;
+  private loadPendingTasks(page: number = 1, resetData: boolean = true) {
+    // Only show main spinner for initial load, use component loading for pagination
+    if (resetData) {
+      this.loading = true;
+    }
+    
     this.error = null;
 
-    // Load tasks that are in approval stage
-    this.workflowTaskService.getTasks({ 
-      stage_type: 'approval'  // Only get approval stage tasks
-    }).pipe(
+    // Reset data if it's a new search or filter change
+    if (resetData) {
+      this.currentPage = 1;
+      this.pendingTasks = [];
+      this.allTasks = [];
+      this.filteredTasks = [];
+      page = 1;
+    }
+
+    const filters = {
+      stage_type: 'approval',  // Only get approval stage tasks
+      page: page,
+      per_page: this.itemsPerPage,
+      ...(this.processTypeFilter !== 'all' && { form_type: this.processTypeFilter }),
+      ...(this.searchText.trim() && { search: this.searchText.trim() })
+    };
+
+    this.workflowTaskService.getTasks(filters).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        const tasks = response.data || [];
-        this.pendingTasks = tasks;
-        this.allTasks = tasks;
-        this.filteredTasks = tasks;
-        this.extractProcessTypes(tasks);
+        // Handle different response structures
+        let tasks = [];
+        if (Array.isArray(response.data)) {
+          tasks = response.data;
+        } else if (Array.isArray(response)) {
+          tasks = response;
+        } else if (response.data && typeof response.data === 'object') {
+          // If data is an object, try to extract array from common properties
+          const dataObj = response.data as any;
+          tasks = dataObj.items || dataObj.data || Object.values(dataObj) || [];
+        } else {
+          tasks = [];
+        }
+        
+        // Ensure tasks is always an array
+        if (!Array.isArray(tasks)) {
+          tasks = [];
+        }
+        
+        // Update pagination meta
+        this.paginationMeta = response.meta;
+        this.currentPage = response.meta?.current_page || page;
+        this.totalPages = response.meta?.last_page || 1;
+        this.totalItems = response.meta?.total || 0;
+        this.itemsPerPage = response.meta?.per_page || this.itemsPerPage;
+        this.hasNextPage = this.currentPage < this.totalPages;
+
+        if (resetData) {
+          // Replace all data for new searches/filters
+          this.pendingTasks = tasks;
+          this.allTasks = tasks;
+          this.filteredTasks = tasks;
+        } else {
+          // Append data for pagination
+          this.pendingTasks = [...this.pendingTasks, ...tasks];
+          this.allTasks = [...this.allTasks, ...tasks];
+          this.filteredTasks = [...this.filteredTasks, ...tasks];
+        }
+        
+        this.extractProcessTypes(this.pendingTasks);
+        
+        // Always reset loading states after successful API call
         this.loading = false;
       },
       error: (error: any) => {
         this.error = 'Failed to load pending tasks';
+        // Always reset loading states on error
         this.loading = false;
         console.error('Error loading tasks:', error);
       }
@@ -101,8 +167,18 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
   }
 
   private extractProcessTypes(tasks: WorkflowTask[]) {
-    const types = ['all', ...new Set(tasks.map(task => task.form_type || task.type))];
-    this.processTypes = types;
+    // Ensure tasks is an array before processing
+    if (!Array.isArray(tasks)) {
+      this.processTypes = ['all'];
+      return;
+    }
+    
+    try {
+      const types = ['all', ...new Set(tasks.map(task => task.form_type || task.type).filter(Boolean))];
+      this.processTypes = types;
+    } catch (error) {
+      this.processTypes = ['all'];
+    }
   }
 
   selectTask(task: WorkflowTask) {
@@ -114,42 +190,18 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
     this.selectTask(ticket);
   }
 
+  onPageChange(page: number): void {
+    if (page !== this.currentPage && !this.loading) {
+      this.loadPendingTasks(page, false);
+    }
+  }
+
   onProcessTypeFilterChange() {
-    this.applyFilters();
+    this.loadPendingTasks(1, true);
   }
 
   searchTickets() {
-    this.applyFilters();
-  }
-
-  private applyFilters() {
-    let filtered = this.pendingTasks;
-
-    // Filter by process type
-    if (this.processTypeFilter !== 'all') {
-      filtered = filtered.filter((task: WorkflowTask) => 
-        task.form_type === this.processTypeFilter || task.type === this.processTypeFilter
-      );
-    }
-
-    // Filter by search text
-    if (this.searchText.trim()) {
-      const searchLower = this.searchText.toLowerCase().trim();
-      filtered = filtered.filter((task: WorkflowTask) => 
-        task.title.toLowerCase().includes(searchLower) ||
-        task.description.toLowerCase().includes(searchLower) ||
-        task.requestor.toLowerCase().includes(searchLower) ||
-        (task.assignees && task.assignees.some(a => a.name.toLowerCase().includes(searchLower)))
-      );
-    }
-
-    this.filteredTasks = filtered;
-    this.allTasks = filtered;
-
-    // Clear selection if filtered task is no longer visible
-    if (this.selectedTask && !this.filteredTasks.includes(this.selectedTask)) {
-      this.selectedTask = null;
-    }
+    this.loadPendingTasks(1, true);
   }
 
   setDisplayType(type: 'list' | 'grid'): void {
@@ -224,6 +276,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
             this.allTasks = this.allTasks.filter(t => t.id !== task.id);
             this.pendingTasks = this.pendingTasks.filter(t => t.id !== task.id);
             this.filteredTasks = this.filteredTasks.filter(t => t.id !== task.id);
+            this.totalItems = Math.max(0, this.totalItems - 1);
           } else {
             failed++;
           }
@@ -231,7 +284,7 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
           // Check if this was the last task
           if (completed + failed === tasks.length) {
             this.processing = false;
-            this.showBulkProcessingResults(completed, failed, action, tasks.length);
+            this.showBulkProcessingResults(completed - failed, failed, action, tasks.length);
           }
         },
         error: (error) => {
@@ -326,6 +379,9 @@ export class ApprovalBoardComponent implements OnInit, OnDestroy {
           this.allTasks = this.allTasks.filter((t: WorkflowTask) => t.id !== taskId);
           this.pendingTasks = this.pendingTasks.filter((t: WorkflowTask) => t.id !== taskId);
           this.filteredTasks = this.filteredTasks.filter((t: WorkflowTask) => t.id !== taskId);
+          
+          // Update total items count
+          this.totalItems = Math.max(0, this.totalItems - 1);
           
           // Clear selection if it was the updated task
           if (this.selectedTask && this.selectedTask.id === taskId) {

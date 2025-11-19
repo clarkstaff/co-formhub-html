@@ -4,22 +4,28 @@ import { Ticket } from '../../models/ticket.interface';
 import { WorkflowTask } from '../../services/workflow-task.service';
 import { TicketDetailContentComponent } from '../ticket-detail-content/ticket-detail-content.component';
 import { AssigneeDisplayComponent } from '../../../../shared/components/assignee-display/assignee-display.component';
+import { LazyPaginationComponent } from '../../../../shared/components/lazy-pagination/lazy-pagination.component';
+import { GridSkeletonComponent } from './grid-skeleton.component';
 import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 
 @Component({
   selector: 'app-approval-grid-view',
   standalone: true,
-  imports: [CommonModule, TicketDetailContentComponent, AssigneeDisplayComponent],
+  imports: [CommonModule, TicketDetailContentComponent, AssigneeDisplayComponent, LazyPaginationComponent, GridSkeletonComponent],
   template: `
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+    <!-- Show skeleton loading when loading and no tasks -->
+    <app-grid-skeleton *ngIf="loading && tasks.length === 0"></app-grid-skeleton>
+    
+    <!-- Show actual content when not loading or when we have tasks -->
+    <div *ngIf="!loading || tasks.length > 0" class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
       
       <!-- Approval List (Left Side) -->
-      <div class="lg:col-span-1 bg-white rounded-lg shadow overflow-hidden">
+      <div class="lg:col-span-1 bg-white dark:bg-dark border border-white-light dark:border-dark rounded-lg shadow overflow-hidden">
         
         <!-- Header with Bulk Actions -->
-        <div class="p-4 border-b border-gray-200">
+        <div class="p-4 border-b border-white-light dark:border-dark">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-medium text-gray-800">Pending Approvals</h2>
+            <h2 class="text-lg font-medium text-black dark:text-white">Pending Approvals</h2>
             <input 
               type="checkbox" 
               class="form-checkbox"
@@ -30,8 +36,8 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
             >
           </div>
           
-          <p class="text-sm text-gray-500 mb-3">
-            {{ tickets.length }} {{ tickets.length === 1 ? 'item' : 'items' }} waiting for approval
+          <p class="text-sm text-dark dark:text-white-dark mb-3">
+            {{ totalItems }} {{ totalItems === 1 ? 'item' : 'items' }} waiting for approval
           </p>
 
           <!-- Bulk Action Buttons -->
@@ -57,16 +63,18 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
           </div>
         </div>
         
-        <div class="divide-y divide-gray-200 max-h-[calc(100vh-20rem)] overflow-y-auto">
-          <div *ngIf="tickets.length === 0" class="p-4 text-center text-gray-500">
+        <div class="divide-y divide-white-light dark:divide-dark max-h-[calc(100vh-20rem)] overflow-y-auto">
+          <div *ngIf="tasks.length === 0" class="p-4 text-center text-dark dark:text-white-dark">
             No items waiting for approval
           </div>
           
           <div
             *ngFor="let task of tasks"
-            class="p-4 cursor-pointer hover:bg-gray-50 transition-colors relative"
+            class="p-4 cursor-pointer hover:bg-white-light dark:hover:bg-black transition-colors relative"
             [class.bg-blue-50]="selectedTask?.id === task.id"
+            [class.dark:bg-blue-900]="selectedTask?.id === task.id"
             [class.bg-green-50]="isTaskSelected(task.id)"
+            [class.dark:bg-green-900]="isTaskSelected(task.id)"
             (click)="onSelectTask(task)"
           >
             <!-- Checkbox overlay -->
@@ -80,40 +88,52 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
             </div>
             <div class="flex justify-between items-start">
               <div>
-                <h3 class="font-medium text-gray-900">{{ task.title }}</h3>
+                <h3 class="font-medium text-black dark:text-white">{{ task.title }}</h3>
                 <div class="mt-1">
                   <app-assignee-display 
                     [assigneeDetails]="getAssigneeDetails(task)"
                     displayMode="compact"
-                    cssClass="text-sm text-gray-500">
+                    cssClass="text-sm text-dark dark:text-white-dark">
                   </app-assignee-display>
                 </div>
-                <p class="text-xs text-blue-600 mt-1" *ngIf="task.reference_id">
+                <p class="text-xs text-blue-600 dark:text-blue-400 mt-1" *ngIf="task.reference_id">
                   Ref: {{ task.reference_id }}
                 </p>
               </div>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 me-5">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 me-5">
                 {{ task.form_name }}
               </span>
             </div>
-            <p class="text-sm text-gray-600 mt-2 line-clamp-2">{{ getFormDataSummary(task) }}</p>
-            <div class="text-xs text-gray-500 mt-2 space-y-1">
-              <p><strong>Requestor:</strong> {{ task.requestor || 'Unknown' }}</p>
-              <p><strong>Created At:</strong> {{ formatDate(task.created_at) }}</p>
+            <p class="text-sm text-dark dark:text-white-dark mt-2 line-clamp-2">{{ getFormDataSummary(task) }}</p>
+            <div class="text-xs text-dark dark:text-white-dark mt-2 space-y-1">
+              <p class="text-black dark:text-white"><strong>Requestor:</strong> {{ task.requestor || 'Unknown' }}</p>
+              <p class="text-black dark:text-white"><strong>Created At:</strong> {{ formatDate(task.created_at) }}</p>
             </div>
           </div>
         </div>
+        
+        <!-- Pagination for Left Panel -->
+        <app-lazy-pagination
+          *ngIf="totalItems > 0"
+          [currentPage]="currentPage"
+          [totalPages]="totalPages"
+          [totalItems]="totalItems"
+          [itemsPerPage]="itemsPerPage"
+          [loading]="loading"
+          [hasNextPage]="hasNextPage"
+          (pageChange)="pageChange.emit($event)">
+        </app-lazy-pagination>
       </div>
 
       <!-- Task Details (Right Side) -->
-      <div class="lg:col-span-2 bg-white rounded-lg shadow">
+      <div class="lg:col-span-2 bg-white dark:bg-dark border border-white-light dark:border-dark rounded-lg shadow">
         <div *ngIf="selectedTask; else noSelection">
           
           <!-- Header with Actions -->
-          <div class="flex flex-wrap items-center justify-between p-4 border-b border-gray-200">
+          <div class="flex flex-wrap items-center justify-between p-4 border-b border-white-light dark:border-dark">
             <div class="flex items-center">
-              <h4 class="text-lg font-medium text-gray-900 mr-2">{{ selectedTask.title }}</h4>
-              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" *ngIf="selectedTask.reference_id">
+              <h4 class="text-lg font-medium text-black dark:text-white mr-2">{{ selectedTask.title }}</h4>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200" *ngIf="selectedTask.reference_id">
                 {{ selectedTask.reference_id }}
               </span>
             </div>
@@ -157,14 +177,14 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
         <!-- No Selection State -->
         <ng-template #noSelection>
           <div class="flex flex-col items-center justify-center h-full p-6 text-center min-h-[400px]">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+            <div class="w-16 h-16 bg-white-light dark:bg-dark rounded-full flex items-center justify-center text-dark dark:text-white-dark mb-4">
               <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
               </svg>
             </div>
-            <h3 class="text-lg font-medium text-gray-900">No task selected</h3>
-            <p class="text-gray-500 mt-1">Select a task from the list to view details and take action</p>
+            <h3 class="text-lg font-medium text-black dark:text-white">No task selected</h3>
+            <p class="text-dark dark:text-white-dark mt-1">Select a task from the list to view details and take action</p>
           </div>
         </ng-template>
       </div>
@@ -174,12 +194,19 @@ import { TicketDisplayUtil } from '../../utils/ticket-display.util';
 export class ApprovalGridViewComponent {
   @Input() tasks: WorkflowTask[] = [];
   @Input() selectedTask: WorkflowTask | null = null;
+  @Input() loading: boolean = false;
+  @Input() currentPage: number = 1;
+  @Input() totalPages: number = 1;
+  @Input() totalItems: number = 0;
+  @Input() itemsPerPage: number = 10;
+  @Input() hasNextPage: boolean = false;
   
   @Output() selectTask = new EventEmitter<WorkflowTask>();
   @Output() approve = new EventEmitter<string>();
   @Output() reject = new EventEmitter<string>();
   @Output() bulkApprove = new EventEmitter<string[]>();
   @Output() bulkReject = new EventEmitter<string[]>();
+  @Output() pageChange = new EventEmitter<number>();
 
   // Bulk selection state
   selectedTaskIds: Set<string> = new Set();

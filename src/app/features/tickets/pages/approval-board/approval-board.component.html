@@ -1,7 +1,7 @@
-<div class="approval-view">
+  <div class="approval-view">
   <!-- Header - Contacts Style -->
   <div class="flex flex-wrap items-center justify-between gap-4">
-    <h2 class="text-xl">Approval Board</h2>
+    <h2 class="text-xl text-gray-900 dark:text-gray-100">Approval Board</h2>
     <div class="flex w-full flex-col gap-4 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
       <div class="flex gap-3">
         <div>
@@ -63,24 +63,26 @@
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="flex justify-center items-center h-64">
-    <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-  </div>
-
-  <!-- Content Views -->
-  <div *ngIf="!loading">
+  <!-- Content Views - Skeleton loading handled by individual components -->
+  <div>
     <!-- List View (Mailbox Style) -->
     <ng-container *ngIf="displayType === 'list'">
       <app-approval-list-view
         [tasks]="filteredTasks"
         [selectedTask]="selectedTask"
+        [loading]="loading"
+        [currentPage]="currentPage"
+        [totalPages]="totalPages"
+        [totalItems]="totalItems"
+        [itemsPerPage]="itemsPerPage"
+        [hasNextPage]="hasNextPage"
         (selectTask)="selectTask($event)"
         (deselectTask)="selectedTask = null"
         (approve)="handleApprove($event)"
         (reject)="handleReject($event)"
         (bulkApprove)="handleBulkApprove($event)"
-        (bulkReject)="handleBulkReject($event)">
+        (bulkReject)="handleBulkReject($event)"
+        (pageChange)="onPageChange($event)">
       </app-approval-list-view>
     </ng-container>
 
@@ -89,11 +91,18 @@
       <app-approval-grid-view
         [tasks]="filteredTasks"
         [selectedTask]="selectedTask"
+        [loading]="loading"
+        [currentPage]="currentPage"
+        [totalPages]="totalPages"
+        [totalItems]="totalItems"
+        [itemsPerPage]="itemsPerPage"
+        [hasNextPage]="hasNextPage"
         (selectTask)="selectTask($event)"
         (approve)="handleApprove($event)"
         (reject)="handleReject($event)"
         (bulkApprove)="handleBulkApprove($event)"
-        (bulkReject)="handleBulkReject($event)">
+        (bulkReject)="handleBulkReject($event)"
+        (pageChange)="onPageChange($event)">
       </app-approval-grid-view>
     </ng-container>
   </div>
