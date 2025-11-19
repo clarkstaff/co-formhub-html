@@ -36,10 +36,10 @@
         <div class="relative">
           <select
             class="form-select ltr:pl-3 ltr:pr-10 rtl:pl-10 rtl:pr-3"
-            [(ngModel)]="processTypeFilter"
-            (change)="onProcessTypeFilterChange()"
+            [ngModel]="processTypeFilter$ | async"
+            (ngModelChange)="onProcessTypeFilterChange($event)"
           >
-            <option *ngFor="let type of processTypes" [value]="type">
+            <option *ngFor="let type of processTypes$ | async" [value]="type">
               {{ type === 'all' ? 'All Processes' : (type | titlecase) }}
             </option>
           </select>
@@ -50,14 +50,29 @@
             type="text"
             placeholder="Search Tickets"
             class="peer form-input py-2 ltr:pr-11 rtl:pl-11"
-            [(ngModel)]="searchText"
-            (ngModelChange)="searchTickets()"
+            [ngModel]="searchText$ | async"
+            (ngModelChange)="onSearchTextChange($event)"
           />
           <div class="absolute top-1/2 -translate-y-1/2 peer-focus:text-primary ltr:right-[11px] rtl:left-[11px]">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
+        </div>
+        
+        <!-- Reset Confirmation Preferences -->
+        <div *ngIf="hasSkipPreferences$ | async" class="relative">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="resetConfirmationPreferences()"
+            title="Reset confirmation preferences"
+          >
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Reset Confirmations
+          </button>
         </div>
       </div>
     </div>
@@ -66,18 +81,18 @@
   <!-- Content Views - Skeleton loading handled by individual components -->
   <div>
     <!-- List View (Mailbox Style) -->
-    <ng-container *ngIf="displayType === 'list'">
+    <ng-container *ngIf="(displayType$ | async) === 'list'">
       <app-approval-list-view
-        [tasks]="filteredTasks"
-        [selectedTask]="selectedTask"
-        [loading]="loading"
-        [currentPage]="currentPage"
-        [totalPages]="totalPages"
-        [totalItems]="totalItems"
-        [itemsPerPage]="itemsPerPage"
-        [hasNextPage]="hasNextPage"
-        (selectTask)="selectTask($event)"
-        (deselectTask)="selectedTask = null"
+        [tasks]="(tasks$ | async) || []"
+        [selectedTask]="selectedTask$ | async"
+        [loading]="(loading$ | async) || false"
+        [currentPage]="(currentPage$ | async) || 1"
+        [totalPages]="(totalPages$ | async) || 1"
+        [totalItems]="(totalItems$ | async) || 0"
+        [itemsPerPage]="(itemsPerPage$ | async) || 20"
+        [hasNextPage]="(hasNextPage$ | async) || false"
+        (selectTask)="onTaskSelected($event)"
+        (deselectTask)="clearSelection()"
         (approve)="handleApprove($event)"
         (reject)="handleReject($event)"
         (bulkApprove)="handleBulkApprove($event)"
@@ -87,17 +102,17 @@
     </ng-container>
 
     <!-- Grid View (Side-by-Side Layout) -->
-    <ng-container *ngIf="displayType === 'grid'">
+    <ng-container *ngIf="(displayType$ | async) === 'grid'">
       <app-approval-grid-view
-        [tasks]="filteredTasks"
-        [selectedTask]="selectedTask"
-        [loading]="loading"
-        [currentPage]="currentPage"
-        [totalPages]="totalPages"
-        [totalItems]="totalItems"
-        [itemsPerPage]="itemsPerPage"
-        [hasNextPage]="hasNextPage"
-        (selectTask)="selectTask($event)"
+        [tasks]="(tasks$ | async) || []"
+        [selectedTask]="selectedTask$ | async"
+        [loading]="(loading$ | async) || false"
+        [currentPage]="(currentPage$ | async) || 1"
+        [totalPages]="(totalPages$ | async) || 1"
+        [totalItems]="(totalItems$ | async) || 0"
+        [itemsPerPage]="(itemsPerPage$ | async) || 20"
+        [hasNextPage]="(hasNextPage$ | async) || false"
+        (selectTask)="onTaskSelected($event)"
         (approve)="handleApprove($event)"
         (reject)="handleReject($event)"
         (bulkApprove)="handleBulkApprove($event)"
@@ -108,11 +123,12 @@
   </div>
 
   <!-- Approval Confirmation Dialog -->
-  <app-confirmation-dialog
-    *ngIf="showApprovalDialog && confirmationDialogData"
-    [isOpen]="showApprovalDialog"
-    [data]="confirmationDialogData"
-    (result)="onConfirmationResult($event)"
-    (close)="closeApprovalDialog()">
-  </app-confirmation-dialog>
+  <ng-container *ngIf="showConfirmationDialog$ | async">
+    <app-confirmation-dialog
+      [isOpen]="(showConfirmationDialog$ | async) || false"
+      [data]="(confirmationDialogData$ | async)!"
+      (result)="onConfirmationResult($event)"
+      (close)="closeApprovalDialog()">
+    </app-confirmation-dialog>
+  </ng-container>
 </div>
