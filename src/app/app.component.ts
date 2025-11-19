@@ -35,7 +35,7 @@ export class AppComponent implements OnInit {
                 }),
                 tap((data: any) => {
                     let title = data.title;
-                    title = (title ? title + ' | ' : '') + 'FORMHUB - Centralize your tickets. Simplify your workflow.';
+                    title = (title ? title + ' | ' : '') + 'Admin Control Center - Centralize controls. Oversee system processes efficiently.';
                     this.titleService.setTitle(title);
                 }),
             )
